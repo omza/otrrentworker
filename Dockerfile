@@ -137,19 +137,8 @@ RUN set -ex; \
 		\) -exec rm -rf '{}' +; \
 	rm -f get-pip.py
 
-# Install otrkeydecoder script
+# Install bittorrentclient requirements
 # -------------------------------------------------------
-ENV OTR_USER xy@z.com
-ENV OTR_PASS supersecret
-ENV LOG_LEVEL DEBUG
-ENV DECODE_INTERVAL 600
-ENV USE_SUBFOLDERS True
-ENV USE_CUTLIST True
-ENV FTP_SERVER ftp.something.com
-ENV FTP_PORT 21
-ENV FTP_USER xyz
-ENV FTP_PASS supersecret
-ENV FTP_PATH /
 
 # Make directories & volumes
 RUN \
@@ -168,4 +157,4 @@ RUN pip install --no-cache-dir -r /usr/src/requirements.txt
 
 # Start/Stop
 STOPSIGNAL SIGTERM
-ENTRYPOINT ["python3", "/usr/src/otrkeydecode.py"]
+ENTRYPOINT ["python3", "/usr/app/otrrentworker.py"]
