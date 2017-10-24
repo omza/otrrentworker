@@ -8,3 +8,27 @@
 !README.md
 
 # Exceptions Projects Subfolder
+!otrrentworker/
+otrrentworker/*
+
+!otrrentworker.py
+!requirements.txt
+
+# Exceptions for py modules
+
+!otrrentworker/config/
+!otrrentworker/config/*
+!otrrentworker/config/application/
+!otrrentworker/config/application/*
+
+!otrrentworker/azurestorage/
+!otrrentworker/azurestorage/*
+
+!otrrentworker/etl/
+!otrrentworker/etl/*
+
+!otrrentworker/helpers/
+!otrrentworker/helpers/*
+
+!otrrentworker/worker/
+!otrrentworker/worker/*
