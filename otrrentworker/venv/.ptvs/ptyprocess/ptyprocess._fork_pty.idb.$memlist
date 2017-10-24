@@ -1,0 +1,8 @@
+fork_pty
+os
+pty_make_controlling_tty
+CHILD
+STDIN_FILENO
+STDOUT_FILENO
+errno
+STDERR_FILENO

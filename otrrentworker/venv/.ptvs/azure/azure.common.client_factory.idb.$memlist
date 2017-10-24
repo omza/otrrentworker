@@ -1,0 +1,13 @@
+_instantiate_client
+get_arg_spec
+get_azure_cli_credentials
+os
+AdalAuthentication
+json
+get_client_from_cli_profile
+get_client_from_auth_file
+get_client_from_json_dict
+adal
+get_cli_active_cloud
+io
+sys
