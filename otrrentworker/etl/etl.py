@@ -20,8 +20,13 @@ def import_otrgenres(config, log) -> StorageTableCollection:
     """ import genres csv into azure storage table """
     log.debug('try to import genres...')
 
-    if db.table_isempty('genres'):
-                   
+    """ load Genres """
+    Genres = StorageTableCollection('genres', "PartitionKey eq 'all'")
+    Genres = db.query(Genres)
+
+    
+    if Genres.len() == 0:
+        """ if genres are empty """           
         if not os.path.exists('genre.csv'):
                 with urllib.request.urlopen('https://www.onlinetvrecorder.com/epg/genres.csv') as response:
                     genrecsv = response.read()
@@ -40,11 +45,12 @@ def import_otrgenres(config, log) -> StorageTableCollection:
         os.remove('genre.csv')
         log.info('genres successfully imported')
     
+        Genres = db.query(Genres)
+    
     else:
+        """ genres are not empty """
         log.info('genres already imported')
     
-    Genres = StorageTableCollection('genres', "PartitionKey eq 'all'")
-    Genres = db.query(Genres)
     return Genres
 
     pass
@@ -90,8 +96,10 @@ def import_otrepg(date, genres:StorageTableCollection, config, log):
                     if row['language'] == 'de':
                         row['PartitionKey'] = PartitionKey
                         row['RowKey'] = row['Id']
-                        row['genre'] = genres.getgenrefromid(row['genre_id'])
-                        Recording(db.tableservice, **row).save()
+                        genre = genres.findfirst('RowKey', row['genre_id'])
+                        row['genre'] = getattr(genre, 'Genre', 'Sonstiges')
+                        tmp = Recording(**row)
+                        db.insert(tmp)
 
             os.remove(csvfile)
 
@@ -134,16 +142,12 @@ def update_toprecordings(config, log):
             log.debug('parsed recording: {} with rating: {} and preview = {}'.format(epg_id, rating, previewimagelink))
 
             if rating in ['sehr hoch', 'hoch']:
-                entity = Recording(db.tableservice, PartitionKey = primarykey, RowKey = epg_id)
-                entity.rating = rating
-                entity.previewimagelink = previewimagelink
-   
-                if entity.exists():
-                    top = entity.copyto('top')
-                    if not top.exists():
-                        top.save(False)
-
-
+                top = db.get(Recording(PartitionKey = primarykey, RowKey = epg_id))  
+                if not top is None:           
+                    top.rating = rating
+                    top.previewimagelink = previewimagelink
+                    top.PrimaryKey = 'top'
+                    db.merge(top)
                     log.info('recording {} moved or is already moved successfully ({}, {!s}, at {})'.format(epg_id,top.titel, top.beginn, top.sender))
                 else:
                     log.info('epg not found: {} with rating: {} and preview = {}'.format(epg_id, rating, previewimagelink)) 
@@ -241,17 +245,19 @@ def update_torrents(startdate:date, config, log):
     log.info('{!s} torrents successfully retrieved...'.format(len(torrentlist)))
 
     """ retrieve epg id from top recordings """
-    for top in db.tableservice.query_entities('recordings', filter="PartitionKey eq 'top'", select='PartitionKey, RowKey, Id, beginn, sender, titel'):
-        
+    tops = StorageTableCollection('recordings', "PartitionKey eq 'top'")
+    tops = db.query(tops)
+
+    for top in tops:
         torrents = [item for item in torrentlist if item['beginn'].strftime('%y.%m.%d %H-%M-%S') == top.beginn.strftime('%y.%m.%d %H-%M-%S') and item['sender'] == top.sender.replace(' ', '').lower()]
         log.debug('filterded {!s} torrents for top recording {}'.format(len(torrents),top.titel))
 
         if len(torrents) >= 1:
             for torrent in torrents:
-                Torrent(db.tableservice, Id = top.Id, **torrent).save()
+                db.merge(Torrent(Id = top.Id, **torrent))
         else:
-            Torrent(db.tableservice, Id = top.Id, **torrent).delete()
-            Recording(db.tableservice, **top).delete()
+            db.delete(Torrent(Id = top.Id, **torrent))
+            db.delete(Recording(**top))
     pass
 
 

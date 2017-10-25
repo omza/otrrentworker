@@ -3,7 +3,7 @@ from datetime import datetime, date, timedelta
 
 """ run worker etl """
 from etl.etl import import_otrepg, import_otrgenres, update_toprecordings, update_torrents
-from helpers.helper import safe_cast
+#from helpers.helper import safe_cast
 
 def runetl(config, log):
     """ run etl  """ 

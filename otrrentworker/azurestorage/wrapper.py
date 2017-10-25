@@ -1,10 +1,17 @@
 """ imports & globals """
-from azure.common import AzureMissingResourceHttpError, AzureException
-from azure.storage.table import TableService, Entity
-from azure.storage.queue import QueueService, QueueMessage
+from azure.common import (
+    AzureMissingResourceHttpError, 
+    AzureException
+    )
+from azure.storage.table import (
+    TableService, 
+    Entity
+    )
+from azure.storage.queue import (
+    QueueService, 
+    QueueMessage
+    )
 from helpers.helper import safe_cast
-
-
 import datetime
 from ast import literal_eval
 
@@ -68,8 +75,7 @@ class StorageTableModel(object):
         """ initialize collectionobjects """
         self.__setCollections__()
         pass
-
-         
+       
     def __setPartitionKey__(self):
         """ parse storage primaries from instance attribute 
             overwrite if inherit this class
@@ -88,21 +94,19 @@ class StorageTableModel(object):
         """
         pass
 
-    def dict(self) -> dict:        
-        """ parse self into dictionary """
-     
+    def dict(self, entity=False) -> dict:        
+        """ parse self into dictionary including nested dictionaries if entity = False """    
         image = {}
-
         for key, value in vars(self).items():
-            if not key.startswith('_') and key !='':                  
-                    
+            if not key.startswith('_') and key !='':                                    
                 if isinstance(value, StorageTableCollection):
-                    image[key] = getattr(self, key).list()
-
+                    if not entity:
+                        image[key] = value
                 else:
-                    image[key] = value                    
-        
+                    image[key] = value                         
         return image
+
+
 
 class StorageTableCollection(list):
     _tablename = ''
@@ -110,19 +114,26 @@ class StorageTableCollection(list):
 
     def __init__(self, tablename='', filter='*'):
         """ constructor """
+        super().__init__()
 
         """ query configuration """
         self._tablename = tablename if tablename != '' else self.__class__._tablename
         self._filter = filter        
         pass
 
-    def find(self, key, value) -> dict:
-        return (item for item in self if item[key] == value)
+    def findfirst(self, key, value) -> dict:
+        try:
+            return [item for item in self if item[key] == value][0]
+        except:
+            return {}
 
     def filter(self, key, values):
         resultset = [item for item in self if item[key] in values]
         self.clear()
         self.extend(resultset)
+
+    def len(self):
+        return self.__len__()
 
     pass
 
@@ -306,7 +317,7 @@ class StorageTableContext():
             modelname = storagemodel.__class__.__name__
             if (modelname in self._models):
                 try:            
-                    self._tableservice.insert_or_replace_entity(storagemodel._tablename, storagemodel.dict())
+                    self._tableservice.insert_or_replace_entity(storagemodel._tablename, storagemodel.dict(True))
                     storagemodel._exists = True
 
                 except AzureMissingResourceHttpError as e:
@@ -324,7 +335,7 @@ class StorageTableContext():
             modelname = storagemodel.__class__.__name__
             if (modelname in self._models):
                 try:            
-                    self._tableservice.insert_or_merge_entity(storagemodel._tablename, storagemodel.dict())
+                    self._tableservice.insert_or_merge_entity(storagemodel._tablename, storagemodel.dict(True))
                     storagemodel._exists = True
 
                 except AzureMissingResourceHttpError as e:

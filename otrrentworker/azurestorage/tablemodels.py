@@ -1,14 +1,12 @@
 """ imports & Gloabls """
 import datetime
 
-from azure.common import AzureException 
-from azure.storage.table import Entity, TableService, EntityProperty, EdmType
+""" import wrapper class and base model """
+from azurestorage.wrapper import (
+    StorageTableModel, 
+    StorageTableCollection
+    )
 
-from azurestorage.wrapper import StorageTableModel, StorageTableCollection
-from helpers.helper import safe_cast
-
-""" configure logging """
-from config import log
 
 class Torrent(StorageTableModel):
     _tablename = 'torrents'
@@ -75,32 +73,3 @@ class Genre(StorageTableModel):
     Genre_Id = 0
     Genre = ''
 
-
-class Genres(StorageTableCollection):
-    _tablename = 'genres'
-     
-    _collection = []
-
-    def __init__(self, tableservice, filter):
-        """Initializes the GenresList with the specified settings dict.
-        Required settings are:
-         - db = Azure Table Storage tableservice
-        """
-        self._tableservice = tableservice
-        self._tablename = self.__class__._tablename
-        self._filter = filter
-        self._collection = []
-        self.__loadcollection__()
-
-    def __loadcollection__(self):
-        allentities = self._tableservice.query_entities(self._tablename, self._filter)
-        for entity in allentities:
-            self._collection.append(entity)
-
-    def getgenrefromid(self, id):
-        """ has to be overwritten """
-        for genre in self._collection:
-            if genre['Genre_Id'] == safe_cast(id, int,0):
-                return genre['Genre']
-                break
-        return 'Sonstiges'
