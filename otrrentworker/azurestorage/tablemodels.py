@@ -76,7 +76,7 @@ class Genre(StorageTableModel):
     Genre = ''
 
 
-class Genres():
+class Genres(StorageTableCollection):
     _tablename = 'genres'
      
     _collection = []

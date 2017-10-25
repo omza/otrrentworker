@@ -24,3 +24,4 @@ requests==2.18.4
 setuptools==36.4.0
 six==1.10.0
 urllib3==1.22
+schedule==0.4.3

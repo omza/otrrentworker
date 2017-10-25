@@ -1,28 +1,22 @@
 """ imports & globals """
-import logging
 import urllib.request
 import csv
 import os
 from datetime import datetime, date, timedelta
 
-
-""" configuration """
-from config import config
-log = logging.getLogger(config['APPLICATION_MAINLOGGER']+'.'+__name__)
-
 """ azure storage repositories """
-from storage.azurestoragewrapper import StorageContext, StorageTableCollection
-from storage.tablemodels import Genre, Genres, Recording, Torrent
+from azurestorage.wrapper import StorageTableCollection
+from azurestorage.tablemodels import Genre, Recording, Torrent
 from azure.storage.table import TableService, Entity
 
-from storage import db
-db.create_table(Torrent._tablename)
-db.create_table(Recording._tablename)
-db.create_table(Genre._tablename)
+from azurestorage import db
+db.register_model(Torrent())
+db.register_model(Recording())
+db.register_model(Genre())
 
-from server.helper import safe_cast
+from helpers.helper import safe_cast
 
-def import_otrgenres() -> Genres:
+def import_otrgenres(config, log) -> StorageTableCollection:
     """ import genres csv into azure storage table """
     log.debug('try to import genres...')
 
@@ -45,16 +39,17 @@ def import_otrgenres() -> Genres:
 
         os.remove('genre.csv')
         log.info('genres successfully imported')
-
-        return Genres(db.tableservice, "PartitionKey eq 'all'")
     
     else:
         log.info('genres already imported')
-        return Genres(db.tableservice, "PartitionKey eq 'all'")
     
+    Genres = StorageTableCollection('genres', "PartitionKey eq 'all'")
+    Genres = db.query(Genres)
+    return Genres
+
     pass
 
-def import_otrepg(date, genres:Genres):
+def import_otrepg(date, genres:StorageTableCollection, config, log):
     """ import otr epg for date into database:
         date:Str = Date a in dd.mm.yyyy to import
 
@@ -109,7 +104,7 @@ def import_otrepg(date, genres:Genres):
     else:
         log.info('epg csv file {} already imported.'.format(csvfile))
 
-def update_toprecordings():
+def update_toprecordings(config, log):
     """ Rufe alle top bewerteten otr Aufzeichnungen ab: 
             https://www.onlinetvrecorder.com/v2/?go=list&tab=toplist&tlview=all&listid=104&start=0
         in 20er Paketen wird der content durchsucht und bei hohen Bewertungen das Recording in eine neue Partition verschoben
@@ -160,7 +155,7 @@ def update_toprecordings():
 
     log.info('toprecordings successfully retireved!')
 
-def update_torrents(startdate:date):
+def update_torrents(startdate:date, config, log):
     """
         rufe alle torrents der letzten 8 Tage ab und ordne diese einem top recording zu
         https://www.onlinetvrecorder.com/v2/?go=tracker&search=&order=ctime%20DESC&start=0

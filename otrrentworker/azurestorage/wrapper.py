@@ -117,10 +117,9 @@ class StorageTableCollection(list):
         pass
 
     def find(self, key, value) -> dict:
-        pass
+        return (item for item in self if item[key] == value)
 
     def filter(self, key, values):
-
         resultset = [item for item in self if item[key] in values]
         self.clear()
         self.extend(resultset)
@@ -207,7 +206,6 @@ class StorageTableContext():
         if self._storage_key != '' and self._storage_name != '':
             self._tableservice = TableService(account_name = self._storage_name, account_key = self._storage_key, protocol='https')
 
-     
     def __createtable__(self, tablename) -> bool:
         if (not self._tableservice is None):
             try:
@@ -230,13 +228,14 @@ class StorageTableContext():
         pass
 
     def table_isempty(self, tablename, PartitionKey='', RowKey = '') -> bool:
-        if  (not self.tableservice is None):
+        if  (not self._tableservice is None):
 
             filter = "PartitionKey eq '{}'".format(PartitionKey) if PartitionKey != '' else ''
             if filter == '':
                 filter = "RowKey eq '{}'".format(RowKey) if RowKey != '' else ''
             else:
                 filter = filter + ("and RowKey eq '{}'".format(RowKey) if RowKey != '' else '')
+
             try:
                 entities = list(self._tableservice.query_entities(tablename, filter = filter, select='PartitionKey', num_results=1))
                 if len(entities) == 1: 
