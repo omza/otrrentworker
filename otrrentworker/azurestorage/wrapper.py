@@ -106,8 +106,6 @@ class StorageTableModel(object):
                     image[key] = value                         
         return image
 
-
-
 class StorageTableCollection(list):
     _tablename = ''
     _filter = ''
@@ -365,57 +363,6 @@ class StorageTableContext():
             return storagemodel
         else:
             return None
-
-
-    def __changeprimarykeys__(self, PartitionKey = '', RowKey = ''):
-        """ Change Entity Primary Keys into new instance:
-
-            - PartitionKey and/or
-            - RowKey
-        """
-
-        PartitionKey = PartitionKey if PartitionKey != '' else self._PartitionKey
-        RowKey = RowKey if RowKey != '' else self._RowKey
-
-        """ change Primary Keys if different to existing ones """
-        if (PartitionKey != self._PartitionKey) or (RowKey != self._RowKey):
-            return True, PartitionKey, RowKey
-        else:
-            return False, PartitionKey, RowKey
-        pass
-            
-    def moveto(self, PartitionKey = '', RowKey = ''):
-        """ Change Entity Primary Keys and move in Storage:
-
-            - PartitionKey and/or
-            - RowKey
-        """
-        changed, PartitionKey, RowKey = self.__changeprimarykeys__(PartitionKey, RowKey)
-
-        if changed:
-
-            """ sync self """
-            new = self.copyto(PartitionKey, RowKey)
-            new.save()
-
-            """ delete Entity if exists in Storage """
-            self.delete()
-
-    def copyto(self, PartitionKey = '', RowKey = '') -> object:
-        """ Change Entity Primary Keys and copy to new Instance:
-
-            - PartitionKey and/or
-            - RowKey
-        """
-        changed, PartitionKey, RowKey = self.__changeprimarykeys__(PartitionKey, RowKey)
-
-        self.load()
-        new = self
-        new._PartitionKey = PartitionKey
-        new._RowKey = RowKey
-        new.load()
-
-        return new
 
     def query(self, storagecollection) -> StorageTableCollection:
         if isinstance(storagecollection, StorageTableCollection):

@@ -12,9 +12,12 @@ from config import (
     )
 
 from etl import runetl
+from worker import runworker
 
 """ schedule workers """
+schedule.every(5).minutes.do(runworker, config, log)
 schedule.every().day.at("00:30").do(runetl, config, log)
+
 
 """ handle sigterm and sigint """
 stopsignal = False

@@ -5,14 +5,9 @@ import os
 from datetime import datetime, date, timedelta
 
 """ azure storage repositories """
+from azurestorage import db
 from azurestorage.wrapper import StorageTableCollection
 from azurestorage.tablemodels import Genre, Recording, Torrent
-from azure.storage.table import TableService, Entity
-
-from azurestorage import db
-db.register_model(Torrent())
-db.register_model(Recording())
-db.register_model(Genre())
 
 from helpers.helper import safe_cast
 
@@ -21,6 +16,7 @@ def import_otrgenres(config, log) -> StorageTableCollection:
     log.debug('try to import genres...')
 
     """ load Genres """
+    db.register_model(Genre())
     Genres = StorageTableCollection('genres', "PartitionKey eq 'all'")
     Genres = db.query(Genres)
 
@@ -38,8 +34,7 @@ def import_otrgenres(config, log) -> StorageTableCollection:
             fieldnames = reader.fieldnames
             rows = [row for row in reader]
             for row in rows:
-                tmp = Genre(db.tableservice, 'all', row['Nummer'], Genre_Id=row['Nummer'], Genre=row['Kategorie'])
-                tmp.upsert()
+                db.merge(Genre(Genre_Id=row['Nummer'], Genre=row['Kategorie']))
 
 
         os.remove('genre.csv')
@@ -68,6 +63,8 @@ def import_otrepg(date, genres:StorageTableCollection, config, log):
     PartitionKey = date.strftime('%Y_%m_%d')
     csvfile = 'epg_' + PartitionKey + '.csv'
     log.debug('try to import epg csvfile: {!s} ...'.format(csvfile))
+
+    db.register_model(Recording())
 
     if db.table_isempty(Recording._tablename, PartitionKey):
         try:
@@ -122,6 +119,7 @@ def update_toprecordings(config, log):
     start = 0
 
     toplist = []
+    db.register_model(Recording())
 
     while not stopflag:
 
@@ -146,7 +144,7 @@ def update_toprecordings(config, log):
                 if not top is None:           
                     top.rating = rating
                     top.previewimagelink = previewimagelink
-                    top.PrimaryKey = 'top'
+                    top.PartitionKey = 'top'
                     db.merge(top)
                     log.info('recording {} moved or is already moved successfully ({}, {!s}, at {})'.format(epg_id,top.titel, top.beginn, top.sender))
                 else:
@@ -169,6 +167,7 @@ def update_torrents(startdate:date, config, log):
     start = 0
 
     torrentlist = []
+    db.register_model(Torrent())
 
     while not stopflag:
 
@@ -258,7 +257,26 @@ def update_torrents(startdate:date, config, log):
         else:
             db.delete(Torrent(Id = top.Id, **torrent))
             db.delete(Recording(**top))
+
+def housekeeping(date, config, log):
+    """ housekeeping epg for date into database:
+        date:Str = Date a in dd.mm.yyyy to import
+    """
+
+    PartitionKey = date.strftime('%Y_%m_%d')
+    log.debug('housekeeping: try to delete all epg entries with Partitionkey: {!s} ...'.format(PartitionKey))
+
+    """ load Genres """
+    epgs = StorageTableCollection('recordings', "PartitionKey eq '"+ PartitionKey +"'")
+    epgs = db.query(epgs)
+
+    for epg in epgs:
+        db.delete(epg)
+
+    log.info('housekeeping finished for Partitionkey: {!s} ...'.format(PartitionKey))
+
     pass
+
 
 
 

@@ -73,3 +73,11 @@ class Genre(StorageTableModel):
     Genre_Id = 0
     Genre = ''
 
+    def __setPartitionKey__(self):
+        self.PartitionKey = 'all'
+        return super().__setPartitionKey__()
+
+    def __setRowKey__(self):
+        self.RowKey = str(self.Genre_Id)
+        return super().__setRowKey__()
+

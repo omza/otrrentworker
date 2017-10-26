@@ -31,13 +31,16 @@ ENV PATH $PATH:/root/bin
 # Make directories & volumes
 RUN \
 	mkdir -p /usr/app && \
-	#mkdir -p /usr/otrkey && \
+	mkdir -p /usr/torrents && \
+	mkdir -p /usr/otrkeys && \
+	mkdir -p /usr/videos && \
 	mkdir -p /usr/log
 
 VOLUME /usr/app/
 VOLUME /usr/log/
-VOLUME /tmp/
-#VOLUME /usr/otrkey/	
+VOLUME /usr/torrents/
+VOLUME /usr/otrkeys/
+VOLUME /usr/videos/
 	
 # install pip requirements	
 COPY ./otrrentworker /usr/app/

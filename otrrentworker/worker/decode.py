@@ -13,31 +13,6 @@ import configparser
 import re
 
 
-""" helper """
-def safe_cast(val, to_type, default=None):
-    try:
-        result = None
-        if val is None:
-            result = default
-        else:
-            if to_type is bool:
-                result = str(val).lower() in ("yes", "true", "t", "1")
-            else:
-                result = to_type(val)
-        return result
-        
-    except (ValueError, TypeError):
-        return default
-
-stopsignal = False
-
-def handler_stop_signals(signum, frame):
-    global stopsignal
-    stopsignal = True
-
-signal.signal(signal.SIGINT, handler_stop_signals)
-signal.signal(signal.SIGTERM, handler_stop_signals)
-
 
 """ Logging Configuration """
 log = logging.getLogger('otrkeydecode')
@@ -57,30 +32,6 @@ def config_logger(log, loglevel):
     log.addHandler(consolehandler)
     log.addHandler(filehandler)
 
-""" Main configuration """
-def config_module():
-
-    config = {}
-
-    config['source_path'] = '/usr/otrkey/'
-    config['loglevel'] = safe_cast(os.environ.get('LOG_LEVEL'), str, 'INFO')
-    config['otrdecoder_executable'] = 'otrdecoder'
-
-    config['otr_user'] = safe_cast(os.environ.get('OTR_USER'), str, 'x@y.z')
-    config['otr_pass'] = safe_cast(os.environ.get('OTR_PASS'), str, 'supersecret')
-
-    config['waitseconds'] = safe_cast(os.environ.get('DECODE_INTERVAL'),int, 3600)
-    config['use_subfolders'] = safe_cast(os.environ.get('USE_SUBFOLDERS'), bool, False)
-    config['use_cutlists'] = safe_cast(os.environ.get('USE_CUTLIST'), bool, False)
-    config['temp_path'] = '/tmp/'
-
-    config['ftp_user'] = safe_cast(os.environ.get('FTP_USER'), str, 'x@y.z')
-    config['ftp_pass'] = safe_cast(os.environ.get('FTP_PASS'), str, 'supersecret')
-    config['ftp_server'] = safe_cast(os.environ.get('FTP_SERVER'), str, 'ftp.something.com')
-    config['ftp_port'] = safe_cast(os.environ.get('FTP_PORT'), int, 21)
-    config['ftp_path'] = safe_cast(os.environ.get('FTP_PATH'), str, '/')
-    
-    return config
 
 
 """ class otrkey logic """

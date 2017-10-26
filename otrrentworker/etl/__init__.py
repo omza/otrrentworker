@@ -2,8 +2,13 @@
 from datetime import datetime, date, timedelta
 
 """ run worker etl """
-from etl.etl import import_otrepg, import_otrgenres, update_toprecordings, update_torrents
-#from helpers.helper import safe_cast
+from etl.etl import (
+    import_otrepg, 
+    import_otrgenres, 
+    update_toprecordings, 
+    update_torrents, 
+    housekeeping
+    )
 
 def runetl(config, log):
     """ run etl  """ 
@@ -18,9 +23,10 @@ def runetl(config, log):
     while (iterdate <= enddate):             
         if (iterdate < startdate):
             """ housekeeping(iterdate) """
+            housekeeping(iterdate, config, log)        
+            
         else:
             import_otrepg(iterdate, genres, config, log)
-            pass
 
         iterdate = iterdate + timedelta(days=1)
 
@@ -28,7 +34,7 @@ def runetl(config, log):
 
     update_torrents(startdate, config, log)
             
-    log.info('next runtime ETL in {!s} seconds at {!s}'.format(config['APPLICATION_ETL_INTERVAL'], nextrun))
+    log.info('successfully run ETL and Houskeeping!')
 
     pass
 
