@@ -16,7 +16,7 @@ from worker import runworker
 
 """ schedule workers """
 schedule.every(5).minutes.do(runworker, config, log)
-schedule.every().day.at("00:30").do(runetl, config, log)
+#schedule.every().day.at("00:30").do(runetl, config, log)
 
 
 """ handle sigterm and sigint """
@@ -40,11 +40,11 @@ def main():
 
     """ run until stopsignal """
     while not stopsignal:
-        if config['APPLICATION_ENVIRONMENT'] == 'Development':
+        if config['APPLICATION_ENVIRONMENT'] in ['Development', 'Test']:
             schedule.run_all()
         else:
             schedule.run_pending()
-        time.sleep(60)
+        time.sleep(5*60)
 
     """ goodby """ 
     log.info('otrrentworker service terminated. Goodby!')

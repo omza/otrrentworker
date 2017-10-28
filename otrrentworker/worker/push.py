@@ -19,9 +19,14 @@ def processpushqueue(config, log):
         - if link is url then download torrentfile and push to endpoint
     """
     queue.register_model(PushMessage())
+    if config['APPLICATION_ENVIRONMENT'] in ['Development', 'Test']:
+        queuehide = 1
+    else:
+        queuehide = 5*60
+
 
     """ loop all push queue messages """
-    message = queue.get(PushMessage(), 5*60)
+    message = queue.get(PushMessage(), queuehide)
     while not message is None:
 
         
@@ -75,7 +80,7 @@ def processpushqueue(config, log):
                     os.remove(file_name)
                 
         """ next message """
-        message = queue.get(PushMessage(), 5*60)
+        message = queue.get(PushMessage(), queuehide)
 
     pass
 
