@@ -3,7 +3,7 @@ import os
 
 """ azure storage repositories """
 from azurestorage import queue
-from azurestorage.queuemodels import PushMessage
+from azurestorage.queuemodels import DownloadMessage
 
 """ import logic and helpers """
 from helpers.ftp import ftp_upload_file
@@ -13,69 +13,59 @@ from helpers.logic import (
     )
 
 """ process push queue """
-def processpushqueue(config, log):
-    """ retrieve and process all visible push queue messages      
-        - if link is local check if file exist then push to ftp endpoint
-        - if link is url then download torrentfile and push to endpoint
+def processdownloadqueue(config, log):
+    """ retrieve and process all visible download queue messages      
+        - if link is url then download torrentfile
+        - initiate bittorrent client to download otrkey file
     """
-    queue.register_model(PushMessage())
+    queue.register_model(DownloadMessage())
 
     """ loop all push queue messages """
-    message = queue.get(PushMessage(), 5*60)
+    message = queue.get(DownloadMessage(), 5*60)
     while not message is None:
 
-        
         if message.sourcelink == '':
             """ no sourcelink ? """
             """ delete queue message and tmp file """
             queue.delete(message)        
-        
-        elif message.sourcelink == '(local)':
-            """ push videofile                
-                ---------------------------------------------------------------------
-                1) check if videofile is present in local videofolder
-                2) pushfile to ftp
-                3) delete video from local tmp videofolder
-                4) delete queue message
-            """
-            pass
 
         else:
-            """ push torrentfile
+            """ download torrentfile
                 ---------------------------------------------------------------------
-                1) download torrent to local tmp folder
-                2) pushfile to ftp
+                1) download torrent to local torrent folder
+                2) initiate download with torrent client
                 3) delete torrent from local tmp folder
                 4) delete queue message
             """      
 
             """ 1) download torrent to local tmp folder """
-            filename, localfile = get_torrentfile(message.sourcelink, config['APPLICATION_PATH_TMP'])
+            filename, localfile = get_torrentfile(message.sourcelink, config['APPLICATION_PATH_TORRENTS'])
             if (not filename is None) and (not localfile is None):
                 downloaded, errormessage = download_fromurl(message.sourcelink, localfile)
 
                 if downloaded:             
-                    """ 2) pushfile to ftp """
-                    uploaded, errormessage =  ftp_upload_file(message.server, message.port, message.user, message.password, message.destpath, filename, localfile)
+                    """ 2) initiate download with torrent client """
+                    bittorrent = True
 
-                    if uploaded:
+                    if bittorrent:
                         """ 3) delete torrent from local tmp folder, 
                             4) delete queue message 
                         """
                         queue.delete(message)
                         if os.path.exists(localfile): 
                             os.remove(localfile)
+
+                        log.info('Download queue message {!s} for Torrent {!s} successfully processed'.format(message.id, filename))
             
             if not errormessage is None:
                 """ delete message after 3 tries """
                 log.error('push failed because {}'.format(errormessage))
                 if message.dequeue_count >= 3:
                     queue.delete(message)
-                if os.path.exists(file_name): 
-                    os.remove(file_name)
+                if os.path.exists(localfile): 
+                    os.remove(localfile)
                 
         """ next message """
-        message = queue.get(PushMessage(), 5*60)
+        message = queue.get(DownloadMessage(), 5*60)
 
     pass
-

@@ -133,11 +133,15 @@ def update_toprecordings(config, log):
             lines = content[index].split('<td oncontextmenu="showNewTabMenu(')
             
             """ epg id """
-            epg_id = lines[1].split(',')[0]
-            rating = lines[8].split('Beliebtheit: ')[1].split("'")[0]
-            previewimagelink = lines[10].split('<img src=')[1].split(' width=')[0]
-            primarykey = datetime.strptime(lines[4].split('>')[1].split('<')[0], '%d.%m.%y').date().strftime('%Y_%m_%d')
-            log.debug('parsed recording: {} with rating: {} and preview = {}'.format(epg_id, rating, previewimagelink))
+            try:
+                epg_id = lines[1].split(',')[0]
+                rating = lines[8].split('Beliebtheit: ')[1].split("'")[0]
+                previewimagelink = lines[10].split('<img src=')[1].split(' width=')[0]
+                primarykey = datetime.strptime(lines[4].split('>')[1].split('<')[0], '%d.%m.%y').date().strftime('%Y_%m_%d')
+                log.debug('parsed recording: {} with rating: {} and preview = {}'.format(epg_id, rating, previewimagelink))
+
+            except:
+                log.error('parsing not possible {!s}'.format(lines))
 
             if rating in ['sehr hoch', 'hoch']:
                 top = db.get(Recording(PartitionKey = primarykey, RowKey = epg_id))  
@@ -152,6 +156,7 @@ def update_toprecordings(config, log):
 
             else:
                 stopflag = True
+
                 
         start = start + 20
 
