@@ -6,10 +6,15 @@ import configparser
 import re
 import urllib
 import fnmatch
+from datetime import datetime
 
 """ azure storage repositories """
-from azurestorage import queue
+from azurestorage import (
+    queue,
+    db
+    )
 from azurestorage.queuemodels import PushVideoMessage
+from azurestorage.tablemodels import History
 
 """ import logic and helpers """
 from helpers.ftp import ftp_upload_file
@@ -99,6 +104,8 @@ def do_pushvideo_queue_message(config, log):
                 3a) add transmission torrent
     """
     queue.register_model(PushVideoMessage())
+    db.register_model(History())
+
     if config['APPLICATION_ENVIRONMENT'] in ['Development', 'Test']:
         queuehide = 60
     else:
@@ -107,6 +114,14 @@ def do_pushvideo_queue_message(config, log):
     """ loop all push queue messages """
     message = queue.get(PushVideoMessage(), queuehide)
     while not message is None:
+
+        """ get history entry for message for an status update """
+        history = History(PartitionKey='torrent', RowKey = message.id)
+        db.get(history)
+        if not db.exists(history):
+            history.created = datetime.now()
+            history.epgid = message.epgid
+            history.sourcefile = message.videofile
 
         if message.sourcelink in ['', 'string']:
             """ no sourcelink ? """
@@ -118,7 +133,7 @@ def do_pushvideo_queue_message(config, log):
             try:
                 localvideofile = os.path.join(config['APPLICATION_PATH_VIDEOS'], message.videofile)
                 localotrkeyfile = os.path.join(config['APPLICATION_PATH_OTRKEYS'], message.otrkeyfile)
-                message.sourcefile, localtorrentfile = get_torrentfile(message.sourcelink, config['APPLICATION_PATH_TMP'])
+                message.sourcefile, localtorrentfile = get_torrentfile(message.sourcelink, config['APPLICATION_PATH_TORRENTS'])
             
                 if os.path.exists(localvideofile):
                     """ 1) videofile is in place: 
@@ -139,7 +154,9 @@ def do_pushvideo_queue_message(config, log):
 
                         """ 1c) delete queue message """
                         queue.delete(message)
+
                         log.info('push video queue message {!s} for {!s} successfully processed!'.format(message.id, message.videofile))
+                        history.status = 'finished'
 
                     else:
                         raise Exception('push failed because {}'.format(errormessage))
@@ -156,7 +173,11 @@ def do_pushvideo_queue_message(config, log):
                     if not decoded:
                         raise Exception(errormessage)
                     else:
+                        if os.path.exists(localcutlistfile):
+                            os.remove(localcutlistfile)
+                        
                         log.info('decoding otrkeyfile {!s} successfully processed!'.format(message.otrkeyfile))
+                        history.status = 'decoded'
                                                                                                                                                              
                 else:
                     """ 3) ELSE if transmission job is not running
@@ -169,6 +190,7 @@ def do_pushvideo_queue_message(config, log):
                     torrents = '{!s}'.format(process.stdout)
                     if torrents.find(message.otrkeyfile) > 0:
                         log.info('download otrkeyfile {!s} is running!'.format(message.otrkeyfile))
+                        history.status = 'still downloading'
         
                     else:
                         """ 3a) add transmission torrent """
@@ -178,12 +200,14 @@ def do_pushvideo_queue_message(config, log):
                             downloaded, errormessage = download_fromurl(message.sourcelink, localtorrentfile)
                     
                         if downloaded:
-                            """ restart transmission service """
+                            """ restart transmission service 
                             call = 'transmission-remote -n transmission:transmission -a ' + localtorrentfile
                             log.debug(call)        
                             process = subprocess.run(call, shell=True, check=True, stderr=subprocess.PIPE)
+                            """
 
                             log.info('downloading torrentfile {!s} successfully initiated!'.format(message.sourcefile))
+                            history.status = 'download started'
 
                         else:
                             raise Exception(errormessage)
@@ -195,11 +219,17 @@ def do_pushvideo_queue_message(config, log):
                 else:
                     errormessage = e
                 log.error('push video failed because {!s}'.format(errormessage))
+                history.status = 'error'
 
                 """ delete message after 3 tries """
-                if (not config['APPLICATION_ENVIRONMENT'] in ['Development', 'Test']) and (message.dequeue_count >= 3):
+                if (not config['APPLICATION_ENVIRONMENT'] == 'Development') and (message.dequeue_count >= 3):
                     queue.delete(message)
-                
+                    history.status = 'deleted'
+ 
+        """ update history entry """
+        history.updated = datetime.now()
+        db.merge(history)
+        
         """ next message """
         message = queue.get(PushVideoMessage(), queuehide)
 

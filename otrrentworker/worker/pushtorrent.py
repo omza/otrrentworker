@@ -1,9 +1,14 @@
 """ imports & globals """
 import os
+from datetime import datetime
 
 """ azure storage repositories """
-from azurestorage import queue
+from azurestorage import (
+    queue,
+    db
+    )
 from azurestorage.queuemodels import PushMessage
+from azurestorage.tablemodels import History
 
 """ import logic and helpers """
 from helpers.ftp import ftp_upload_file
@@ -19,6 +24,8 @@ def do_pushtorrent_queue_message(config, log):
         - if link is url then download torrentfile and push to endpoint
     """
     queue.register_model(PushMessage())
+    db.register_model(History())
+
     if config['APPLICATION_ENVIRONMENT'] in ['Development', 'Test']:
         queuehide = 1
     else:
@@ -29,8 +36,11 @@ def do_pushtorrent_queue_message(config, log):
     message = queue.get(PushMessage(), queuehide)
     while not message is None:
 
+        """ get history entry for message for an status update """
+        history = History(PartitionKey='torrent', RowKey = message.id)
+        db.get(history)
         
-        if message.sourcelink == '':
+        if message.sourcelink in ['', 'string']:
             """ no sourcelink ? """
             """ delete queue message and tmp file """
             queue.delete(message)        
@@ -64,11 +74,17 @@ def do_pushtorrent_queue_message(config, log):
             if not errormessage is None:
                 """ delete message after 3 tries """
                 log.error('push failed because {}'.format(errormessage))
-                if (not config['APPLICATION_ENVIRONMENT'] in ['Development', 'Test']) and (message.dequeue_count >= 3):
+                history.status = 'error'
+                if (not config['APPLICATION_ENVIRONMENT'] == 'Development') and (message.dequeue_count >= 3):
                     queue.delete(message)
+                    history.status = 'deleted'
                 if os.path.exists(localfile): 
                     os.remove(localfile)
-                
+        
+        """ update history entry """
+        history.updated = datetime.now()
+        db.merge(history)
+
         """ next message """
         message = queue.get(PushMessage(), queuehide)
 

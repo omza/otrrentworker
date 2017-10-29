@@ -141,6 +141,8 @@ RUN \
 	mkdir -p /usr/log && \
 	mv /tmp/* /usr/app/ && \
 	pip install --no-cache-dir -r /usr/app/requirements.txt && \
+	rm -rf /var/lib/transmission-daemon/info/settings.json && \
+	mv /usr/app/config/settings.json /var/lib/transmission-daemon/info/settings.json && \ 
 	apt-get remove --purge -y --auto-remove bzip2 && \
 	rm -rf /var/lib/apt/lists/* && \
 	apt-get clean

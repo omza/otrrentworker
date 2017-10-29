@@ -40,20 +40,20 @@ def main():
             time.sleep(5)
 
             """ configure download folder """
-            call = 'transmission-remote -n transmission:transmission -w ' + config['APPLICATION_PATH_OTRKEYS']
-            log.debug(call)
-            process = subprocess.run(call, shell=True, check=True, stderr=subprocess.PIPE)
+            #call = 'transmission-remote -n transmission:transmission -w ' + config['APPLICATION_PATH_OTRKEYS']
+            #log.debug(call)
+            #process = subprocess.run(call, shell=True, check=True, stderr=subprocess.PIPE)
 
             """ restart downloading all pending torrents """
-            call = 'transmission-remote -n transmission:transmission -s'
-            log.debug(call)
-            process = subprocess.run(call, shell=True, check=True, stderr=subprocess.PIPE)
+            #call = 'transmission-remote -n transmission:transmission -s'
+            #log.debug(call)
+            #process = subprocess.run(call, shell=True, check=True, stderr=subprocess.PIPE)
 
             """ check running transmission downloads """
-            call = 'transmission-remote -n transmission:transmission -l'       
-            process = subprocess.run(call, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)                    
-            torrents = '{!s}'.format(process.stdout)
-            log.debug(torrents)
+            #call = 'transmission-remote -n transmission:transmission -l'       
+            #process = subprocess.run(call, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)                    
+            #torrents = '{!s}'.format(process.stdout)
+            #log.debug(torrents)
 
         except subprocess.CalledProcessError as e:
             log.error('init transmission-deamon failed with cmd:{!s} because {!s}'.format(e.cmd, e.stderr))
@@ -61,14 +61,19 @@ def main():
     
     if daemonstarted:
         """ schedule workers """
-        if config['APPLICATION_ENVIRONMENT'] in ['Development', 'Test']:
-            schedule.every(5).minutes.do(runworker, config, log)
+        if config['APPLICATION_ENVIRONMENT'] == 'Development':
+            schedule.every(10).seconds.do(runworker, config, log)
+
+        elif config['APPLICATION_ENVIRONMENT'] == 'Test':
+            schedule.every(1).minutes.do(runworker, config, log)
+            schedule.every(2).hours.do(runetl, config, log)
+            
         else:
             schedule.every(5).minutes.do(runworker, config, log)
             schedule.every().day.at("00:30").do(runetl, config, log)
 
         """ log configuration in debug mode """
-        if config['APPLICATION_ENVIRONMENT'] in ['Development', 'Test']:
+        if config['APPLICATION_ENVIRONMENT'] in ['Development']:
             for key, value in config.items():   
                 log.debug('otrrentworker configuration: {} = {!s}'.format(key, value))
 
@@ -83,3 +88,4 @@ def main():
 """ run main if not imported """
 if __name__ == '__main__':
     main()
+
