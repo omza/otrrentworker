@@ -62,39 +62,30 @@ def get_cutlist(source_file, video_file, temp_path, log):
         log.exception('Exception Traceback:')
         return None
 
-""" decode """
-def decode(source_fullpath, cutlist_fullpath, log):
-    """ decode file ------------------------------------------------------------"""
-        
-    if not self.decoded:
-        log.debug('try to decode {} with cutlist {!s}'.format(source_fullpath, cutlist_fullpath))                    
-    
-        try:
-               
-            if os.path.exists(self.video_temp_fullpath):
-                log.info('Already decoded in former session: {!s}.'.format(self.video_temp_fullpath))
-                self.decoded = True
-                
-            else:
-                call = self.otrdecoder_executable + ' -i ' + source_fullpath + ' -o ' + self.temp_path + ' -e ' + self.otr_user + ' -p ' + self.otr_pass + ' -f'
-                
-                if self.use_cutlists:
-                    self.cutlist_fullpath = self.get_cutlist()
-                    if not self.cutlist_fullpath is None:
-                            call = call + ' -C ' + self.cutlist_fullpath
-                
-                log.debug('decode call: {} !'.format(call))
 
-                process = subprocess.Popen(call, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                process.wait()
+def decode(source_fullpath, log):
+    """ decode file """
+    log.debug('try to decode {}'.format(source_fullpath))                     
+    try:     
+        call = self.otrdecoder_executable + ' -i ' + source_fullpath + ' -o ' + self.temp_path + ' -e ' + self.otr_user + ' -p ' + self.otr_pass + ' -f'
+                
+        if self.use_cutlists:
+            self.cutlist_fullpath = self.get_cutlist()
+            if not self.cutlist_fullpath is None:
+                    call = call + ' -C ' + self.cutlist_fullpath
+                
+        log.debug('decode call: {} !'.format(call))
+
+        process = subprocess.Popen(call, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        process.wait()
         
-                """ decoding successful ? """
-                if process.returncode != 0:
-                    log.error('decoding failed with code {!s} and output {!s}'.format(process.returncode, process.stderr.read()))
+        """ decoding successful ? """
+        if process.returncode != 0:
+            log.error('decoding failed with code {!s} and output {!s}'.format(process.returncode, process.stderr.read()))
                     
-                else:
-                    log.info('Decoding succesfull with returncode {!s}.'.format(process.returncode))
-                    self.decoded = True
+        else:
+            log.info('Decoding succesfull with returncode {!s}.'.format(process.returncode))
+            self.decoded = True
 
         except:
             log.exception('Exception Traceback:')

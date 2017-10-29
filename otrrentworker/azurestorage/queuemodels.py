@@ -1,13 +1,8 @@
 """ imports & Gloabls """
-import datetime
-
-from azure.common import AzureException, AzureMissingResourceHttpError 
-from azurestorage.wrapper import StorageQueueContext, StorageQueueModel 
-from helpers.helper import safe_cast
-
-""" configure logging """
-from config import log
-
+from azurestorage.wrapper import (
+    StorageQueueContext, 
+    StorageQueueModel
+    )
 
 """ Models to determine Queue Message Content ------------------------------------
 """
@@ -28,19 +23,20 @@ class PushMessage(StorageQueueModel):
     destpath = '/'
 
 
-class DownloadMessage(StorageQueueModel):
-    _queuename = 'download'
+class PushVideoMessage(StorageQueueModel):
+    _queuename = 'video'
 
     epgid = 0
     resolution = ''
     sourcefile = ''
     sourcelink = ''
-    
-    otrkeyfile = ''
 
-
-class DecodeMessage(StorageQueueModel):
-    _queuename = 'decode'
+    protocol = 'ftp'
+    server = ''
+    port = 21
+    user = ''
+    password = ''
+    destpath = '/'
 
     otrkeyfile = ''
     videofile = ''

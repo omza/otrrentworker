@@ -128,7 +128,7 @@ ENV APPLICATION_ENVIRONMENT=Production
 # -----------------------------------------------------------
 RUN \
 	apt-get update && \
-	apt-get -y install bzip2 transmission-cli transmission-common && \ 
+	apt-get -y install bzip2 transmission-cli transmission-common transmission-daemon && \ 
 	tar -jxf /tmp/$OTR_DECODER.tar.bz2 -C ~/ && \
 	cd ~/$OTR_DECODER && \
 	./install.sh && \

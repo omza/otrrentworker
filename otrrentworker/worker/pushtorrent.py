@@ -13,7 +13,7 @@ from helpers.logic import (
     )
 
 """ process push queue """
-def processpushqueue(config, log):
+def do_pushtorrent_queue_message(config, log):
     """ retrieve and process all visible push queue messages      
         - if link is local check if file exist then push to ftp endpoint
         - if link is url then download torrentfile and push to endpoint
@@ -34,16 +34,6 @@ def processpushqueue(config, log):
             """ no sourcelink ? """
             """ delete queue message and tmp file """
             queue.delete(message)        
-        
-        elif message.sourcelink == '(local)':
-            """ push videofile                
-                ---------------------------------------------------------------------
-                1) check if videofile is present in local videofolder
-                2) pushfile to ftp
-                3) delete video from local tmp videofolder
-                4) delete queue message
-            """
-            pass
 
         else:
             """ push torrentfile
@@ -74,10 +64,10 @@ def processpushqueue(config, log):
             if not errormessage is None:
                 """ delete message after 3 tries """
                 log.error('push failed because {}'.format(errormessage))
-                if message.dequeue_count >= 3:
+                if (not config['APPLICATION_ENVIRONMENT'] in ['Development', 'Test']) and (message.dequeue_count >= 3):
                     queue.delete(message)
-                if os.path.exists(file_name): 
-                    os.remove(file_name)
+                if os.path.exists(localfile): 
+                    os.remove(localfile)
                 
         """ next message """
         message = queue.get(PushMessage(), queuehide)
