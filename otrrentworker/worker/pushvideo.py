@@ -116,7 +116,7 @@ def do_pushvideo_queue_message(config, log):
     while not message is None:
 
         """ get history entry for message for an status update """
-        history = History(PartitionKey='torrent', RowKey = message.id)
+        history = History(PartitionKey='video', RowKey = message.id)
         db.get(history)
         if not db.exists(history):
             history.created = datetime.now()

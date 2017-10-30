@@ -62,11 +62,11 @@ def main():
     if daemonstarted:
         """ schedule workers """
         if config['APPLICATION_ENVIRONMENT'] == 'Development':
-            schedule.every(10).seconds.do(runworker, config, log)
+            schedule.every(1).minutes.do(runetl, config, log)
 
         elif config['APPLICATION_ENVIRONMENT'] == 'Test':
             schedule.every(1).minutes.do(runworker, config, log)
-            schedule.every(2).hours.do(runetl, config, log)
+            schedule.every(1).hours.do(runetl, config, log)
             
         else:
             schedule.every(5).minutes.do(runworker, config, log)
