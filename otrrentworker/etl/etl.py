@@ -90,13 +90,12 @@ def import_otrepg(date, genres:StorageTableCollection, config, log):
                 rows = [row for row in reader]
 
                 for row in rows:
-                    if row['language'] == 'de':
-                        row['PartitionKey'] = PartitionKey
-                        row['RowKey'] = row['Id']
-                        genre = genres.findfirst('RowKey', row['genre_id'])
-                        row['genre'] = getattr(genre, 'Genre', 'Sonstiges')
-                        tmp = Recording(**row)
-                        db.insert(tmp)
+                    row['PartitionKey'] = PartitionKey
+                    row['RowKey'] = row['Id']
+                    genre = genres.findfirst('RowKey', row['genre_id'])
+                    row['genre'] = getattr(genre, 'Genre', 'Sonstiges')
+                    tmp = Recording(**row)
+                    db.insert(tmp)
 
             os.remove(csvfile)
 

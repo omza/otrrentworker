@@ -37,23 +37,7 @@ def main():
             call = 'service transmission-daemon start'
             log.debug(call)        
             process = subprocess.run(call, shell=True, check=True, stderr=subprocess.PIPE)
-            time.sleep(5)
-
-            """ configure download folder """
-            #call = 'transmission-remote -n transmission:transmission -w ' + config['APPLICATION_PATH_OTRKEYS']
-            #log.debug(call)
-            #process = subprocess.run(call, shell=True, check=True, stderr=subprocess.PIPE)
-
-            """ restart downloading all pending torrents """
-            #call = 'transmission-remote -n transmission:transmission -s'
-            #log.debug(call)
-            #process = subprocess.run(call, shell=True, check=True, stderr=subprocess.PIPE)
-
-            """ check running transmission downloads """
-            #call = 'transmission-remote -n transmission:transmission -l'       
-            #process = subprocess.run(call, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)                    
-            #torrents = '{!s}'.format(process.stdout)
-            #log.debug(torrents)
+            process.wait()
 
         except subprocess.CalledProcessError as e:
             log.error('init transmission-deamon failed with cmd:{!s} because {!s}'.format(e.cmd, e.stderr))
@@ -64,18 +48,18 @@ def main():
         if config['APPLICATION_ENVIRONMENT'] == 'Development':
             schedule.every(1).minutes.do(runetl, config, log)
 
+            """ log configuration in debug mode """
+            for key, value in config.items():   
+                log.debug('otrrentworker configuration: {} = {!s}'.format(key, value))
+
         elif config['APPLICATION_ENVIRONMENT'] == 'Test':
             schedule.every(1).minutes.do(runworker, config, log)
             schedule.every(1).hours.do(runetl, config, log)
             
         else:
             schedule.every(5).minutes.do(runworker, config, log)
-            schedule.every().day.at("00:30").do(runetl, config, log)
+            schedule.every().day.at("12:00").do(runetl, config, log)
 
-        """ log configuration in debug mode """
-        if config['APPLICATION_ENVIRONMENT'] in ['Development']:
-            for key, value in config.items():   
-                log.debug('otrrentworker configuration: {} = {!s}'.format(key, value))
 
         """ run until stopsignal """
         while not stopsignal:
