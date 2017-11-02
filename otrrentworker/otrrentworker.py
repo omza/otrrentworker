@@ -37,7 +37,7 @@ def main():
             call = 'service transmission-daemon start'
             log.debug(call)        
             process = subprocess.run(call, shell=True, check=True, stderr=subprocess.PIPE)
-            process.wait()
+            time.sleep(5)
 
         except subprocess.CalledProcessError as e:
             log.error('init transmission-deamon failed with cmd:{!s} because {!s}'.format(e.cmd, e.stderr))
