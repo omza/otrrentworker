@@ -7,6 +7,7 @@ APPLICATION_MAINLOGGER = 'otrrentworker'
 APPLICATION_PATH_TORRENTS = '/usr/torrents/'
 APPLICATION_PATH_OTRKEYS = '/usr/otrkeys/'
 APPLICATION_PATH_VIDEOS = '/usr/videos/'
+APPLICATION_PATH_TMP = '/tmp'
 
 # azure storage settings
 AZURE_REQUIRE_ENCRYPTION = True
