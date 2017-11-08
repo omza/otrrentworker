@@ -126,7 +126,8 @@ def do_pushvideo_queue_message(config, log):
         if message.sourcelink in ['', 'string']:
             """ no sourcelink ? """
             """ delete queue message and tmp file """
-            queue.delete(message)        
+            queue.delete(message)
+            history.status = 'deleted'
 
         else:
             """ process push video """          
