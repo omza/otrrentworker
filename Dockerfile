@@ -158,6 +158,7 @@ VOLUME /usr/videos/
 
 # Start/Stop
 # -------------------------------------------------------
+EXPOSE 51413
 STOPSIGNAL SIGTERM
 WORKDIR /usr/app/
 ENTRYPOINT ["python3", "/usr/app/otrrentworker.py"]
