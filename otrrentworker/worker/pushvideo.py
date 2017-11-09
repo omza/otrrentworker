@@ -188,10 +188,27 @@ def do_pushvideo_queue_message(config, log):
                     call = 'transmission-remote -n transmission:transmission -l'       
                     process = subprocess.run(call, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)                    
                     
-                    torrents = '{!s}'.format(process.stdout)
-                    if torrents.find(message.otrkeyfile) > 0:
+                    """ parse stdout lines for download status 
+                        ID     Done       Have  ETA           Up    Down  Ratio  Status       Name
+                        Sum:              None               0.0     0.0
+                    """
+                    log.debug('stdout unparsed {!s}'.format(process.stdout))
+                    downloading = False
+                    downloadstatus = ''
+                    for line in process.stdout.decode(encoding='utf-8').splitlines():
+                        fields = re.sub(' +',';', line).split(';')
+                        log.debug('{!s} fields in line converted: {!s}'.format(len(fields), fields))
+                        if len(fields) == 12:
+                            log.debug('row-Name: {!s} = {!s}'.format(fields[11],fields[2]))
+                            if (fields[11] == message.otrkeyfile):
+                                downloading = True
+                                downloadstatus = 'downloading otrkey {!s}'.format(fields[2])
+                                break
+                        # transmission-remote -t ID --remove-and-delete
+
+                    if downloading:
                         log.info('download otrkeyfile {!s} is running!'.format(message.otrkeyfile))
-                        history.status = 'still downloading'
+                        history.status = downloadstatus
         
                     else:
                         """ 3a) add transmission torrent """
@@ -233,5 +250,7 @@ def do_pushvideo_queue_message(config, log):
         
         """ next message """
         message = queue.get(PushVideoMessage(), queuehide)
+
+    """ housekeeping temporary files """
 
     pass
