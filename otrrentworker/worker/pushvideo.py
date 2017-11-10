@@ -119,10 +119,9 @@ def get_transmissionstatus(log) -> list:
                 transmissionstatus.append(transmissionSingleStatus)
                 
         return transmissionstatus
-        # transmission-remote -t ID --remove-and-delete
 
     except subprocess.CalledProcessError:
-        log.error('cmd {!s} failed because {!s}, {!s}'.format(e.cmd,e.stderr, e.stdout))
+        log.error('cmd {!s} failed because {!s}, {!s}'.format(e.cmd, e.stderr, e.stdout))
         return []
     
 
@@ -171,6 +170,13 @@ def do_pushvideo_queue_message(config, log):
             history.epgid = message.epgid
             history.sourcefile = message.videofile
 
+        """ get single transmission download status """
+        downloadstatus = [element for element in transmissionstatus if element['Name'] == message.otrkeyfile]
+        if downloadstatus != []:
+            downloadstatus = downloadstatus[0]
+        else:
+            downloadstatus = None
+
         if message.sourcelink in ['', 'string']:
             """ no sourcelink ? """
             """ delete queue message and tmp file """
@@ -208,8 +214,17 @@ def do_pushvideo_queue_message(config, log):
                         raise Exception('push failed because {}'.format(errormessage))
 
                 elif os.path.exists(localotrkeyfile):
-                    """ 2) OR if otrkeyfile is in place 
-                        2a) init decodingprocess to videofile """
+                    """ 2) OR if otrkeyfile is in place
+                        2a) remove torrent from transmission-daemon
+                        2b) init decodingprocess to videofile """
+
+                    """ 2a) remove torrent from transmission-daemon """
+                    if not downloadstatus is None:
+                        call = 'transmission-remote -t ' + downloadstatus['ID'] + ' -r'      
+                        process = subprocess.run(call, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                        log.debug('{} finished with {}'.format(call,process.stdout.decode(encoding='utf-8')))
+
+                    """  2b) init decodingprocess to videofile """
                     if message.usecutlist:
                         localcutlistfile = get_cutlist(message.otrkeyfile, message.videofile, config['APPLICATION_PATH_TMP'], log)
                     else:
@@ -227,11 +242,6 @@ def do_pushvideo_queue_message(config, log):
                 else:
                     """ 3) ELSE if transmission job is not running
                         3a) add transmission torrent """
-                    downloadstatus = [element for element in transmissionstatus if element['Name'] == message.otrkeyfile]
-                    if downloadstatus != []:
-                        downloadstatus = downloadstatus[0]
-                    else:
-                        downloadstatus = None
 
                     if not downloadstatus is None:
                         
@@ -245,13 +255,7 @@ def do_pushvideo_queue_message(config, log):
                         else:
                             downloaded, errormessage = download_fromurl(message.sourcelink, localtorrentfile)
                     
-                        if downloaded:
-                            """ restart transmission service 
-                            call = 'transmission-remote -n transmission:transmission -a ' + localtorrentfile
-                            log.debug(call)        
-                            process = subprocess.run(call, shell=True, check=True, stderr=subprocess.PIPE)
-                            """
-
+                        if downloaded: 
                             log.info('downloading torrentfile {!s} successfully initiated!'.format(message.sourcefile))
                             history.status = 'download started'
 
