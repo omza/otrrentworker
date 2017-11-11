@@ -215,16 +215,10 @@ def do_pushvideo_queue_message(config, log):
 
                 elif os.path.exists(localotrkeyfile):
                     """ 2) OR if otrkeyfile is in place
-                        2a) remove torrent from transmission-daemon
-                        2b) init decodingprocess to videofile """
+                        2a) init decodingprocess to videofile """
 
-                    """ 2a) remove torrent from transmission-daemon """
-                    if not downloadstatus is None:
-                        call = 'transmission-remote -t ' + downloadstatus['ID'] + ' -r'      
-                        process = subprocess.run(call, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                        log.debug('{} finished with {}'.format(call,process.stdout.decode(encoding='utf-8')))
 
-                    """  2b) init decodingprocess to videofile """
+                    """  2a) init decodingprocess to videofile """
                     if message.usecutlist:
                         localcutlistfile = get_cutlist(message.otrkeyfile, message.videofile, config['APPLICATION_PATH_TMP'], log)
                     else:
@@ -287,5 +281,12 @@ def do_pushvideo_queue_message(config, log):
     for file in houskeeping:
         if os.path.exists(file):
             os.remove(file)
+
+    """ houskeeping torrent queue """
+    for torrentsinglestate in downloadstatus:
+        if torrentsinglestate['ETA'] == 'Done':
+            call = 'transmission-remote -t ' + re.sub(r"\D", "", torrentsinglestate['ID']) + ' -r'      
+            process = subprocess.run(call, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            log.debug('{} finished with {}'.format(call,process.stdout.decode(encoding='utf-8')))
 
     pass
