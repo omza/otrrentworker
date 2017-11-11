@@ -283,7 +283,7 @@ def do_pushvideo_queue_message(config, log):
             os.remove(file)
 
     """ houskeeping torrent queue """
-    for torrentsinglestate in downloadstatus:
+    for torrentsinglestate in transmissionstatus:
         if torrentsinglestate['ETA'] == 'Done':
             call = 'transmission-remote -t ' + re.sub(r"\D", "", torrentsinglestate['ID']) + ' -r'      
             process = subprocess.run(call, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
