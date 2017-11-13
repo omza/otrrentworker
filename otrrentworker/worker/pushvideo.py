@@ -103,26 +103,21 @@ def get_transmissionstatus(log) -> list:
             ID     Done       Have  ETA           Up    Down  Ratio  Status       Name
             Sum:              None               0.0     0.0
         """
+        log.debug('{}'.format(process.stdout.decode(encoding='utf-8')))
 
-        for line in process.stdout.decode(encoding='utf-8').splitlines():
-            fields = re.sub(' +',';', line).split(';')
-
-            if len(fields) >= 11:
+        for line in process.stdout.decode(encoding='utf-8').splitlines():          
+            if len(line) >= 71:
                 transmissionSingleStatus = {}
-                transmissionSingleStatus['sID'] = '{!s}'.format(fields[1])
-                transmissionSingleStatus['ID'] = re.sub(r"\D", "", '{!s}'.format(fields[1]))
-                transmissionSingleStatus['Done'] = '{!s}'.format(fields[2])
-
-                if len(fields) == 11:
-                    transmissionSingleStatus['Name'] = '{!s}'.format(fields[10])
-                    transmissionSingleStatus['ETA'] = '{!s}'.format(fields[5])
-                    transmissionSingleStatus['Status'] = '{!s}'.format(fields[9]) 
-                else:
-                    transmissionSingleStatus['Name'] = '{!s}'.format(fields[11])
-                    transmissionSingleStatus['ETA'] = '{!s} {!s}'.format(fields[5], fields[6])
-                    transmissionSingleStatus['Status'] = '{!s}'.format(fields[10]) 
                 
+                transmissionSingleStatus['sID'] = line[:5].strip()
+                transmissionSingleStatus['ID'] = re.sub(r"\D", "", line[:5].strip())
+                transmissionSingleStatus['Done'] = line[6:11].strip()
+                transmissionSingleStatus['ETA'] = line[22:32].strip()
+                transmissionSingleStatus['Status'] = line[57:69].strip()
+                transmissionSingleStatus['Name'] = line[70:].strip()
+
                 log.debug('torrent status {!s}'.format(transmissionSingleStatus))
+
                 transmissionstatus.append(transmissionSingleStatus)
                
         return transmissionstatus

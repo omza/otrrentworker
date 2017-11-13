@@ -143,6 +143,8 @@ RUN \
 	pip install --no-cache-dir -r /usr/app/requirements.txt && \
 	rm -rf /var/lib/transmission-daemon/info/settings.json && \
 	mv /usr/app/config/settings.json /var/lib/transmission-daemon/info/settings.json && \ 
+	rm -rf /etc/default/transmission-daemon && \
+	mv /usr/app/config/transmission-daemon /etc/default/transmission-daemon && \
 	apt-get remove --purge -y --auto-remove bzip2 && \
 	rm -rf /var/lib/apt/lists/* && \
 	apt-get clean

@@ -38,7 +38,7 @@ def main():
             log.debug(call)        
             process = subprocess.run(call, shell=True, check=True, stdout=subprocess.PIPE , stderr=subprocess.PIPE)
             time.sleep(5)
-            log.info('init transmission-deamon finished. Returns {!s}'.format(process.stdout))
+            log.info('init transmission-deamon finished. Returns {!s}'.format(process.stdout.decode(encoding='utf-8')))
 
         except subprocess.CalledProcessError as e:
             log.error('init transmission-deamon failed with cmd:{!s} because {!s}'.format(e.cmd, e.stderr))
