@@ -103,24 +103,31 @@ def get_transmissionstatus(log) -> list:
             ID     Done       Have  ETA           Up    Down  Ratio  Status       Name
             Sum:              None               0.0     0.0
         """
-        log.debug('stdout unparsed {!s}'.format(process.stdout))
+
         for line in process.stdout.decode(encoding='utf-8').splitlines():
             fields = re.sub(' +',';', line).split(';')
-            
-            if len(fields) == 12:
+
+            if len(fields) >= 11:
                 transmissionSingleStatus = {}
-                transmissionSingleStatus['ID'] = '{!s}'.format(fields[1])
-                transmissionSingleStatus['Name'] = '{!s}'.format(fields[11])
+                transmissionSingleStatus['sID'] = '{!s}'.format(fields[1])
+                transmissionSingleStatus['ID'] = re.sub(r"\D", "", '{!s}'.format(fields[1]))
                 transmissionSingleStatus['Done'] = '{!s}'.format(fields[2])
-                transmissionSingleStatus['ETA'] = '{!s} {!s}'.format(fields[5], fields[6])
-                transmissionSingleStatus['Status'] = '{!s}'.format(fields[10]) 
+
+                if len(fields) == 11:
+                    transmissionSingleStatus['Name'] = '{!s}'.format(fields[10])
+                    transmissionSingleStatus['ETA'] = '{!s}'.format(fields[5])
+                    transmissionSingleStatus['Status'] = '{!s}'.format(fields[9]) 
+                else:
+                    transmissionSingleStatus['Name'] = '{!s}'.format(fields[11])
+                    transmissionSingleStatus['ETA'] = '{!s} {!s}'.format(fields[5], fields[6])
+                    transmissionSingleStatus['Status'] = '{!s}'.format(fields[10]) 
                 
                 log.debug('torrent status {!s}'.format(transmissionSingleStatus))
                 transmissionstatus.append(transmissionSingleStatus)
-                
+               
         return transmissionstatus
 
-    except subprocess.CalledProcessError:
+    except subprocess.CalledProcessError as e:
         log.error('cmd {!s} failed because {!s}, {!s}'.format(e.cmd, e.stderr, e.stdout))
         return []
     
@@ -129,6 +136,8 @@ def get_transmissionstatus(log) -> list:
 
 
 """ restart torrent in transmission queue """
+
+
 
 """ process push queue """
 def do_pushvideo_queue_message(config, log):
@@ -152,8 +161,9 @@ def do_pushvideo_queue_message(config, log):
     else:
         queuehide = 5*60
 
-    """ housekeeping array of files to be deleted """
+    """ housekeeping array of files and transmission-queues to be deleted """
     houskeeping = []
+    housekeepingTransmission = []
 
     """ get transmission status """
     transmissionstatus = get_transmissionstatus(log)
@@ -169,6 +179,7 @@ def do_pushvideo_queue_message(config, log):
             history.created = datetime.now()
             history.epgid = message.epgid
             history.sourcefile = message.videofile
+        #log.debug('{!s}'.format(history.dict()))
 
         """ get single transmission download status """
         downloadstatus = [element for element in transmissionstatus if element['Name'] == message.otrkeyfile]
@@ -176,6 +187,7 @@ def do_pushvideo_queue_message(config, log):
             downloadstatus = downloadstatus[0]
         else:
             downloadstatus = None
+        #log.debug('{!s}'.format(downloadstatus))
 
         if message.sourcelink in ['', 'string']:
             """ no sourcelink ? """
@@ -215,8 +227,8 @@ def do_pushvideo_queue_message(config, log):
 
                 elif os.path.exists(localotrkeyfile):
                     """ 2) OR if otrkeyfile is in place
-                        2a) init decodingprocess to videofile """
-
+                        2a) init decodingprocess to videofile 
+                        2b) delete transmission queue """ 
 
                     """  2a) init decodingprocess to videofile """
                     if message.usecutlist:
@@ -229,6 +241,8 @@ def do_pushvideo_queue_message(config, log):
                         raise Exception(errormessage)
                     else:
                         houskeeping.append(localcutlistfile)
+                        if not downloadstatus is None:
+                            housekeepingTransmission.append(downloadstatus)
                         
                         log.info('decoding otrkeyfile {!s} successfully processed!'.format(message.otrkeyfile))
                         history.status = 'decoded'
@@ -283,9 +297,15 @@ def do_pushvideo_queue_message(config, log):
             os.remove(file)
 
     """ houskeeping torrent queue """
+    for torrentsinglestate in housekeepingTransmission:
+        call = 'transmission-remote -t ' + torrentsinglestate['ID'] + ' -r'      
+        process = subprocess.run(call, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        log.debug('{} finished with {}'.format(call, process.stdout.decode(encoding='utf-8')))
+
     for torrentsinglestate in transmissionstatus:
-        if torrentsinglestate['ETA'] == 'Done':
-            call = 'transmission-remote -t ' + re.sub(r"\D", "", torrentsinglestate['ID']) + ' -r'      
+        """ restart queue entries """
+        if torrentsinglestate['Status'] == 'Stopped':
+            call = 'transmission-remote -t ' + torrentsinglestate['ID'] + ' -s'      
             process = subprocess.run(call, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             log.debug('{} finished with {}'.format(call,process.stdout.decode(encoding='utf-8')))
 
