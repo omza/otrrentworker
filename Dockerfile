@@ -144,7 +144,9 @@ RUN \
 	rm -rf /var/lib/transmission-daemon/info/settings.json && \
 	mv /usr/app/config/settings.json /var/lib/transmission-daemon/info/settings.json && \ 
 	rm -rf /etc/default/transmission-daemon && \
-	mv /usr/app/config/transmission-daemon /etc/default/transmission-daemon && \
+	mv /usr/app/config/transmission-daemon /etc/default/transmission-daemon && \ 
+	rm -rf /etc/init/transmission-daemon.conf && \
+	mv /usr/app/config/transmission-daemon.conf /etc/init/transmission-daemon.conf && \
 	apt-get remove --purge -y --auto-remove bzip2 && \
 	rm -rf /var/lib/apt/lists/* && \
 	apt-get clean
