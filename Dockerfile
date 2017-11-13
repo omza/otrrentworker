@@ -136,8 +136,11 @@ RUN \
 	rm -rf /tmp/$OTR_DECODER.tar.bz2 && \
 	mkdir -p /usr/app && \
 	mkdir -p /usr/torrents && \
+	chown debian-transmission:debian-transmission /usr/torrents && \
 	mkdir -p /usr/otrkeys && \
+	chown debian-transmission:debian-transmission /usr/otrkeys && \
 	mkdir -p /usr/videos && \
+	chown debian-transmission:debian-transmission /usr/videos && \
 	mkdir -p /usr/log && \
 	mv /tmp/* /usr/app/ && \
 	pip install --no-cache-dir -r /usr/app/requirements.txt && \
@@ -145,8 +148,6 @@ RUN \
 	mv /usr/app/config/settings.json /var/lib/transmission-daemon/info/settings.json && \ 
 	rm -rf /etc/default/transmission-daemon && \
 	mv /usr/app/config/transmission-daemon /etc/default/transmission-daemon && \ 
-	rm -rf /etc/init/transmission-daemon.conf && \
-	mv /usr/app/config/transmission-daemon.conf /etc/init/transmission-daemon.conf && \
 	apt-get remove --purge -y --auto-remove bzip2 && \
 	rm -rf /var/lib/apt/lists/* && \
 	apt-get clean
