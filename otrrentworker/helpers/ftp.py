@@ -1,5 +1,6 @@
 """ import & globals """
 import ftplib
+import os
 
 """ test connection """
 def test_ftpconnection(server, port, user, password, path):
@@ -30,8 +31,8 @@ def ftp_upload_file(server, port, user, password, path, filename, localfile):
                 
         """ login to ftp server """
         ftp = ftplib.FTP()
-
-        ftp.connect(server, port)
+        ftp.set_pasv(True)
+        ftp.connect(server, port, timeout=300)
         ftp.login(user=user, passwd=password)
       
         """ check fpt_path exist ? """

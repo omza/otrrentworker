@@ -60,6 +60,7 @@ def main():
         else:
             schedule.every(5).minutes.do(runworker, config, log)
             schedule.every().day.at("12:00").do(runetl, config, log)
+            schedule.every().day.at("00:00").do(runetl, config, log)
 
 
         """ run until stopsignal """
