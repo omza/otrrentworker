@@ -61,7 +61,7 @@ def do_pushtorrent_queue_message(config, log):
 
                 if downloaded:             
                     """ 2) pushfile to ftp """
-                    uploaded, errormessage =  ftp_upload_file(message.server, message.port, message.user, message.password, message.destpath, filename, localfile)
+                    uploaded, errormessage =  ftp_upload_file(log, message.server, message.port, message.user, message.password, message.destpath, filename, localfile)
 
                     if uploaded:
                         """ 3) delete torrent from local tmp folder, 

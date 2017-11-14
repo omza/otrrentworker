@@ -204,7 +204,7 @@ def do_pushvideo_queue_message(config, log):
                         1c) delete queue message """
 
                     """ 1a) push video to ftp """
-                    uploaded, errormessage =  ftp_upload_file(message.server, message.port, message.user, message.password, message.destpath, message.videofile, localvideofile)
+                    uploaded, errormessage =  ftp_upload_file(log, message.server, message.port, message.user, message.password, message.destpath, message.videofile, localvideofile)
                     if uploaded:
                         """ 1b) delete videofile, otrkeyfile, torrentfile """
                         houskeeping.append(localvideofile)
