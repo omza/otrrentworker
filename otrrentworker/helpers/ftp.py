@@ -102,7 +102,7 @@ def ftp_upload_file2(log, server, port, user, password, path, filename, localfil
         t.start()
 
         while t.is_alive():
-            t.join(10)
+            t.join(30)
             ftp.voidcmd('NOOP')
             log.debug('NOOP send to ftp {!s}:{!s} succeeded'.format(server, port))
 
