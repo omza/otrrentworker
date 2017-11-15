@@ -11,7 +11,7 @@ from azurestorage.queuemodels import PushMessage
 from azurestorage.tablemodels import History
 
 """ import logic and helpers """
-from helpers.ftp import ftp_upload_file
+from helpers.ftp import ftp_upload_file2
 from helpers.logic import (
     download_fromurl, 
     get_torrentfile
@@ -61,7 +61,7 @@ def do_pushtorrent_queue_message(config, log):
 
                 if downloaded:             
                     """ 2) pushfile to ftp """
-                    uploaded, errormessage =  ftp_upload_file(log, message.server, message.port, message.user, message.password, message.destpath, filename, localfile)
+                    uploaded, errormessage =  ftp_upload_file2(log, message.server, message.port, message.user, message.password, message.destpath, filename, localfile)
 
                     if uploaded:
                         """ 3) delete torrent from local tmp folder, 

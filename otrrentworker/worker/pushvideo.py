@@ -17,7 +17,7 @@ from azurestorage.queuemodels import PushVideoMessage
 from azurestorage.tablemodels import History
 
 """ import logic and helpers """
-from helpers.ftp import ftp_upload_file
+from helpers.ftp import ftp_upload_file2
 from helpers.logic import (
     download_fromurl, 
     get_torrentfile
@@ -204,7 +204,7 @@ def do_pushvideo_queue_message(config, log):
                         1c) delete queue message """
 
                     """ 1a) push video to ftp """
-                    uploaded, errormessage =  ftp_upload_file(log, message.server, message.port, message.user, message.password, message.destpath, message.videofile, localvideofile)
+                    uploaded, errormessage =  ftp_upload_file2(log, message.server, message.port, message.user, message.password, message.destpath, message.videofile, localvideofile)
                     if uploaded:
                         """ 1b) delete videofile, otrkeyfile, torrentfile """
                         houskeeping.append(localvideofile)
@@ -271,7 +271,7 @@ def do_pushvideo_queue_message(config, log):
                     errormessage = 'cmd {!s} failed because {!s}, {!s}'.format(e.cmd,e.stderr, e.stdout)
                 else:
                     errormessage = e
-                log.error('push video failed because {!s}'.format(errormessage))
+                log.exception('push video failed because {!s}'.format(errormessage))
                 history.status = 'error'
 
                 """ delete message after 3 tries """
