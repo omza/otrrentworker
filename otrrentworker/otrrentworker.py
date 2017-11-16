@@ -32,11 +32,17 @@ def start_transmission():
         if not os.path.exists('/usr/log/transmission.log'):
             call = 'touch /usr/log/transmission.log'      
             process = subprocess.run(call, shell=True, check=True, stdout=subprocess.PIPE , stderr=subprocess.PIPE)        
-            time.sleep(2)
             call = 'chown -R debian-transmission:debian-transmission /usr/log'      
-            process = subprocess.run(call, shell=True, check=True, stdout=subprocess.PIPE , stderr=subprocess.PIPE)        
-            time.sleep(2)
-        
+            process = subprocess.run(call, shell=True, check=True, stdout=subprocess.PIPE , stderr=subprocess.PIPE)
+
+        """ update ACL for transmission access """
+        call = 'chown debian-transmission:debian-transmission ' + config['APPLICATION_PATH_TORRENTS'] 
+        process = subprocess.run(call, shell=True, check=True, stdout=subprocess.PIPE , stderr=subprocess.PIPE)        
+        call = 'chown debian-transmission:debian-transmission ' + config['APPLICATION_PATH_OTRKEYS']
+        process = subprocess.run(call, shell=True, check=True, stdout=subprocess.PIPE , stderr=subprocess.PIPE)
+        call = 'chown debian-transmission:debian-transmission ' + config['APPLICATION_PATH_VIDEOS']   
+        process = subprocess.run(call, shell=True, check=True, stdout=subprocess.PIPE , stderr=subprocess.PIPE)
+
         """ restart transmission service """
         call = 'service transmission-daemon start'
         log.debug(call)        

@@ -136,11 +136,8 @@ RUN \
 	rm -rf /tmp/$OTR_DECODER.tar.bz2 && \
 	mkdir -p /usr/app && \
 	mkdir -p /usr/torrents && \
-	chown debian-transmission:debian-transmission /usr/torrents && \
 	mkdir -p /usr/otrkeys && \
-	chown debian-transmission:debian-transmission /usr/otrkeys && \
 	mkdir -p /usr/videos && \
-	chown debian-transmission:debian-transmission /usr/videos && \
 	mkdir -p /usr/log && \
 	mv /tmp/* /usr/app/ && \
 	pip install --no-cache-dir -r /usr/app/requirements.txt && \
