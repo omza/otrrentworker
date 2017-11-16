@@ -93,4 +93,5 @@ class History(StorageTableModel):
     language = ''
     status = ''
     created = datetime.datetime.strptime('01.01.1900 00:00:00', _datetimeformat)
-    updated  = datetime.datetime.strptime('01.01.1900 00:00:00', _datetimeformat) 
+    updated  = datetime.datetime.strptime('01.01.1900 00:00:00', _datetimeformat)
+    errorcount = 0
