@@ -36,11 +36,11 @@ def start_transmission():
             process = subprocess.run(call, shell=True, check=True, stdout=subprocess.PIPE , stderr=subprocess.PIPE)
 
         """ update ACL for transmission access """
-        call = 'chown debian-transmission:debian-transmission ' + config['APPLICATION_PATH_TORRENTS'] 
+        call = 'chown -R debian-transmission:debian-transmission ' + config['APPLICATION_PATH_TORRENTS'] 
         process = subprocess.run(call, shell=True, check=True, stdout=subprocess.PIPE , stderr=subprocess.PIPE)        
-        call = 'chown debian-transmission:debian-transmission ' + config['APPLICATION_PATH_OTRKEYS']
+        call = 'chown -R debian-transmission:debian-transmission ' + config['APPLICATION_PATH_OTRKEYS']
         process = subprocess.run(call, shell=True, check=True, stdout=subprocess.PIPE , stderr=subprocess.PIPE)
-        call = 'chown debian-transmission:debian-transmission ' + config['APPLICATION_PATH_VIDEOS']   
+        call = 'chown -R debian-transmission:debian-transmission ' + config['APPLICATION_PATH_VIDEOS']   
         process = subprocess.run(call, shell=True, check=True, stdout=subprocess.PIPE , stderr=subprocess.PIPE)
 
         """ restart transmission service """
