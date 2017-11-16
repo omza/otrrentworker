@@ -289,8 +289,9 @@ def do_pushvideo_queue_message(config, log):
 
     """ housekeeping temporary files """
     for file in houskeeping:
-        if os.path.exists(file):
-            os.remove(file)
+        if not file is None:
+            if os.path.exists(file):
+                os.remove(file)
 
     """ houskeeping torrent queue """
     for torrentsinglestate in housekeepingTransmission:
