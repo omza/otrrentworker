@@ -5,6 +5,7 @@ import signal
 import schedule
 import time
 import subprocess
+import os
 
 """ import config and workers """
 from config import (
@@ -24,6 +25,30 @@ def handler_stop_signals(signum, frame):
 signal.signal(signal.SIGINT, handler_stop_signals)
 signal.signal(signal.SIGTERM, handler_stop_signals)
 
+""" start Transmission daemon """
+def start_transmission():
+    try:      
+        """ create transmission-log """
+        if not os.path.exists('/usr/log/transmission.log'):
+            call = 'touch /usr/log/transmission.log'      
+            process = subprocess.run(call, shell=True, check=True, stdout=subprocess.PIPE , stderr=subprocess.PIPE)        
+            time.sleep(2)
+            call = 'chown -R debian-transmission:debian-transmission /usr/log'      
+            process = subprocess.run(call, shell=True, check=True, stdout=subprocess.PIPE , stderr=subprocess.PIPE)        
+            time.sleep(2)
+        
+        """ restart transmission service """
+        call = 'service transmission-daemon start'
+        log.debug(call)        
+        process = subprocess.run(call, shell=True, check=True, stdout=subprocess.PIPE , stderr=subprocess.PIPE)
+        time.sleep(5)
+        log.info('init transmission-deamon finished. Returns {!s}'.format(process.stdout.decode(encoding='utf-8')))
+        return True
+
+    except subprocess.CalledProcessError as e:
+        log.error('init transmission-deamon failed with cmd:{!s} because {!s}'.format(e.cmd, e.stderr))
+        return False
+
 
 """ Main """
 def main():
@@ -32,17 +57,7 @@ def main():
     """ initiate transmission-deamon """
     daemonstarted = True
     if not config['APPLICATION_ENVIRONMENT'] in ['Development']:
-        try:      
-            """ restart transmission service """
-            call = 'service transmission-daemon start'
-            log.debug(call)        
-            process = subprocess.run(call, shell=True, check=True, stdout=subprocess.PIPE , stderr=subprocess.PIPE)
-            time.sleep(5)
-            log.info('init transmission-deamon finished. Returns {!s}'.format(process.stdout.decode(encoding='utf-8')))
-
-        except subprocess.CalledProcessError as e:
-            log.error('init transmission-deamon failed with cmd:{!s} because {!s}'.format(e.cmd, e.stderr))
-            daemonstarted = False            
+        daemonstarted = start_transmission()      
     
     if daemonstarted:
         """ schedule workers """
