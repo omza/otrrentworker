@@ -55,6 +55,10 @@ def start_transmission():
         log.error('init transmission-deamon failed with cmd:{!s} because {!s}'.format(e.cmd, e.stderr))
         return False
 
+    except:
+        log.exception('start transmission failed... ')
+        return False
+
 
 """ Main """
 def main():
