@@ -275,6 +275,7 @@ def do_pushvideo_queue_message(config, log):
                 history.status = 'error'
 
                 """ delete message after 3 tries """
+                history.errorcount += 1
                 if (config['APPLICATION_ENVIRONMENT'] == 'Production') and (history.errorcount >= 3):
                     queue.delete(message)
                     history.status = 'deleted'
