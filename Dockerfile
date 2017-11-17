@@ -144,7 +144,9 @@ RUN \
 	rm -rf /var/lib/transmission-daemon/info/settings.json && \
 	mv /usr/app/config/settings.json /var/lib/transmission-daemon/info/settings.json && \ 
 	rm -rf /etc/default/transmission-daemon && \
-	mv /usr/app/config/transmission-daemon /etc/default/transmission-daemon && \ 
+	mv /usr/app/config/transmission-daemon /etc/default/transmission-daemon && \
+	echo "net.core.rmem_max = 4194304" >> /etc/sysctl.conf && \
+	echo "net.core.wmem_max = 1048576" >> /etc/sysctl.conf && \
 	apt-get remove --purge -y --auto-remove bzip2 && \
 	rm -rf /var/lib/apt/lists/* && \
 	apt-get clean
