@@ -21,7 +21,7 @@ def import_otrgenres(config, log) -> StorageTableCollection:
     Genres = db.query(Genres)
 
     
-    if Genres.len() == 0:
+    if len(Genres) == 0:
         """ if genres are empty """           
         if not os.path.exists('genre.csv'):
                 with urllib.request.urlopen('https://www.onlinetvrecorder.com/epg/genres.csv') as response:
@@ -34,7 +34,7 @@ def import_otrgenres(config, log) -> StorageTableCollection:
             fieldnames = reader.fieldnames
             rows = [row for row in reader]
             for row in rows:
-                db.merge(Genre(Genre_Id=row['Nummer'], Genre=row['Kategorie']))
+                db.insert(Genre(Genre_Id=row['Nummer'], Genre=row['Kategorie']))
 
 
         os.remove('genre.csv')
@@ -148,7 +148,7 @@ def update_toprecordings(config, log):
                     top.rating = rating
                     top.previewimagelink = previewimagelink
                     top.PartitionKey = 'top'
-                    db.merge(top)
+                    db.insert(top)
                     log.info('recording {} moved or is already moved successfully ({}, {!s}, at {})'.format(epg_id,top.titel, top.beginn, top.sender))
                 else:
                     log.info('epg not found: {} with rating: {} and preview = {}'.format(epg_id, rating, previewimagelink)) 
@@ -257,7 +257,7 @@ def update_torrents(startdate:date, config, log):
 
         if len(torrents) >= 1:
             for torrent in torrents:
-                db.merge(Torrent(Id = top.Id, **torrent))
+                db.insert(Torrent(Id = top.Id, **torrent))
         else:
             db.delete(Torrent(Id = top.Id, **torrent))
             db.delete(Recording(**top))

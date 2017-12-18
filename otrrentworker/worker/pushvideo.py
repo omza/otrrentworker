@@ -287,7 +287,7 @@ def do_pushvideo_queue_message(config, log):
  
         """ update history entry """
         history.updated = datetime.now()
-        db.merge(history)
+        db.insert(history)
         
         """ next message """
         message = queue.get(PushVideoMessage(), queuehide)
