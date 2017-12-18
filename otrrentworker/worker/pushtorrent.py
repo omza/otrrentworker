@@ -80,6 +80,7 @@ def do_pushtorrent_queue_message(config, log):
                         queue.delete(message)
                         if os.path.exists(localfile): 
                             os.remove(localfile)
+                        history.status = 'finished'
             
             if not errormessage is None:
                 """ delete message after 3 tries """

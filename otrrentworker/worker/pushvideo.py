@@ -13,6 +13,7 @@ from azurestorage import (
     queue,
     db
     )
+from azurestorage.wrapper import StorageTableCollection
 from azurestorage.queuemodels import PushVideoMessage
 from azurestorage.tablemodels import History
 
