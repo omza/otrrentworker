@@ -1,12 +1,14 @@
 """ imports & Gloabls """
 import datetime
 
-""" import wrapper class and base model """
-from azurestorage.wrapper import (
-    StorageTableModel, 
-    StorageTableCollection
-    )
+from azure.common import AzureException 
+from azure.storage.table import Entity, TableService, EntityProperty, EdmType
 
+from azurestorage.wrapper import StorageTableModel, StorageTableCollection
+from helpers.helper import safe_cast
+
+""" configure logging """
+from config import log, config
 
 class Torrent(StorageTableModel):
     _tablename = 'torrents'
@@ -28,6 +30,7 @@ class Torrent(StorageTableModel):
     def __setRowKey__(self):
         self.RowKey = self.Resolution
         return super().__setRowKey__()
+
 
 class Recording(StorageTableModel):
     _tablename = 'recordings'
@@ -68,23 +71,55 @@ class Recording(StorageTableModel):
         self.Torrents = StorageTableCollection('torrents', "PartitionKey eq '{}'".format(self.RowKey))
         return super().__setCollections__()
 
+
 class Genre(StorageTableModel):   
     _tablename = 'genres'                       
     Genre_Id = 0
     Genre = ''
 
-    def __setPartitionKey__(self):
-        self.PartitionKey = 'all'
-        return super().__setPartitionKey__()
+class Genres():
+    _tablename = 'genres'
+     
+    _collection = []
 
-    def __setRowKey__(self):
-        self.RowKey = str(self.Genre_Id)
-        return super().__setRowKey__()
+    def __init__(self, tableservice, filter):
+        """Initializes the GenresList with the specified settings dict.
+        Required settings are:
+         - db = Azure Table Storage tableservice
+        """
+        self._tableservice = tableservice
+        self._tablename = self.__class__._tablename
+        self._filter = filter
+        self._collection = []
+        self.__loadcollection__()
+
+    def __loadcollection__(self):
+        allentities = self._tableservice.query_entities(self._tablename, self._filter)
+        for entity in allentities:
+            self._collection.append(entity)
+
+    def getgenrefromid(self, id):
+        """ has to be overwritten """
+        for genre in self._collection:
+            if genre['Genre_Id'] == safe_cast(id, int,0):
+                return genre['Genre']
+                break
+        return 'Sonstiges'
 
 class History(StorageTableModel):
     _tablename = 'history'
-    _datetimeformat = '%d.%m.%Y %H:%M:%S'    
+    _datetimeformat = '%d.%m.%Y %H:%M:%S'
+    
+    taskid = ''
+    tasktype = ''
     epgid = 0
+    beginn = datetime.datetime.strptime('01.01.1900 00:00:00', _datetimeformat)
+    sender = ''
+    titel = ''
+    genre = ''    
+    previewimagelink = ''
+    resolution = ''
+    
     sourcefile = ''
     ip = ''
     platform = ''
@@ -92,6 +127,35 @@ class History(StorageTableModel):
     version = ''
     language = ''
     status = ''
+
     created = datetime.datetime.strptime('01.01.1900 00:00:00', _datetimeformat)
     updated  = datetime.datetime.strptime('01.01.1900 00:00:00', _datetimeformat)
-    errorcount = 0
+
+class User(StorageTableModel):
+    _tablename = 'userprofile'
+    _datetimeformat = '%d.%m.%Y %H:%M:%S'
+
+
+    AdsRemoved = False
+    ProUser = False
+    PushVideo = False
+    OtrUser = ''
+    OtrPassword = ''
+    UseCutlist = True
+    UseSubfolder = False
+    Protocol = 'ftp'
+    Server = ''
+    Port = 21
+    FtpUser = ''
+    FtpPassword = ''
+    ServerPath = '/'
+    created = datetime.datetime.strptime('01.01.1900 00:00:00', _datetimeformat)
+    updated = datetime.datetime.strptime('01.01.1900 00:00:00', _datetimeformat)
+
+    def __setEncryptedProperties__(self):
+        self._encryptedproperties = ['OtrUser', 'OtrPassword', 'Server', 'FtpUser', 'FtpPassword']
+        return super().__setEncryptedProperties__()
+    
+    
+    
+

@@ -168,12 +168,17 @@ def do_pushvideo_queue_message(config, log):
     while not message is None:
 
         """ get history entry for message for an status update """
-        history = History(PartitionKey='video', RowKey = message.id)
-        db.get(history)
-        if not db.exists(history):
+        historylist = StorageTableCollection('history', "RowKey eq '" + message.id + "'")
+        historylist = db.query(historylist)
+        for item in historylist:
+            history = db.get(History(PartitionKey=item.PartitionKey, RowKey = message.id))
+
+        if not history:
+            history = History(PartitionKey='video', RowKey = message.id)
             history.created = datetime.now()
             history.epgid = message.epgid
             history.sourcefile = message.videofile
+
         #log.debug('{!s}'.format(history.dict()))
 
         """ get single transmission download status """

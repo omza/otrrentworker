@@ -9,6 +9,7 @@ from azurestorage import (
     )
 from azurestorage.queuemodels import PushMessage
 from azurestorage.tablemodels import History
+from azurestorage.wrapper import StorageTableCollection
 
 """ import logic and helpers """
 from helpers.ftp import ftp_upload_file2
@@ -37,9 +38,18 @@ def do_pushtorrent_queue_message(config, log):
     while not message is None:
 
         """ get history entry for message for an status update """
-        history = History(PartitionKey='torrent', RowKey = message.id)
-        db.get(history)
-        
+        historylist = StorageTableCollection('history', "RowKey eq '" + message.id + "'")
+        historylist = db.query(historylist)
+        for item in historylist:
+            history = db.get(History(PartitionKey=item.PartitionKey, RowKey = message.id))
+
+        if not history:
+            history = History(PartitionKey='torrent', RowKey = message.id)
+            history.created = datetime.now()
+            history.epgid = message.epgid
+            history.sourcefile = message.sourcefile
+
+
         if message.sourcelink in ['', 'string']:
             """ no sourcelink ? """
             """ delete queue message and tmp file """
@@ -83,7 +93,7 @@ def do_pushtorrent_queue_message(config, log):
         
         """ update history entry """
         history.updated = datetime.now()
-        db.merge(history)
+        db.insert(history)
 
         """ next message """
         message = queue.get(PushMessage(), queuehide)

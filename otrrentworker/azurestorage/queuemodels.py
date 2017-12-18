@@ -1,8 +1,5 @@
 """ imports & Gloabls """
-from azurestorage.wrapper import (
-    StorageQueueContext, 
-    StorageQueueModel
-    )
+from azurestorage.wrapper import StorageQueueContext, StorageQueueModel 
 
 """ Models to determine Queue Message Content ------------------------------------
 """

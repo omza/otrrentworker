@@ -1,17 +1,10 @@
 """ imports & globals """
-from azure.common import (
-    AzureMissingResourceHttpError, 
-    AzureException
-    )
-from azure.storage.table import (
-    TableService, 
-    Entity
-    )
-from azure.storage.queue import (
-    QueueService, 
-    QueueMessage
-    )
+from azure.common import AzureMissingResourceHttpError, AzureException
+from azure.storage.table import TableService, Entity
+from azure.storage.queue import QueueService, QueueMessage
 from helpers.helper import safe_cast
+
+
 import datetime
 from ast import literal_eval
 
@@ -30,6 +23,11 @@ class StorageTableModel(object):
     _dateformat = ''
     _datetimeformat = ''
     _exists = None
+    _encryptedproperties = []
+
+    PartitionKey = ''
+    RowKey = ''
+
 
     def __init__(self, **kwargs):                  
         """ constructor """
@@ -74,8 +72,13 @@ class StorageTableModel(object):
 
         """ initialize collectionobjects """
         self.__setCollections__()
+
+        """ define properties to be encrypted """
+        self.__setEncryptedProperties__()
+
         pass
-       
+
+         
     def __setPartitionKey__(self):
         """ parse storage primaries from instance attribute 
             overwrite if inherit this class
@@ -94,16 +97,28 @@ class StorageTableModel(object):
         """
         pass
 
-    def dict(self, entity=False) -> dict:        
-        """ parse self into dictionary including nested dictionaries if entity = False """    
+    def __setEncryptedProperties__(self):
+        """ give back a list of property names to be encrypted client side
+            default: all properties are not encrypted
+            overwrite if inherit this class
+        """
+        pass
+
+
+    def dict(self) -> dict:        
+        """ parse self into dictionary """
+     
         image = {}
+
         for key, value in vars(self).items():
-            if not key.startswith('_') and key !='':                                    
+            if not key.startswith('_') and key !='':                  
+                    
                 if isinstance(value, StorageTableCollection):
-                    if not entity:
-                        image[key] = value
+                    image[key] = getattr(self, key).list()
+
                 else:
-                    image[key] = value                         
+                    image[key] = value                    
+        
         return image
 
 class StorageTableCollection(list):
@@ -112,26 +127,20 @@ class StorageTableCollection(list):
 
     def __init__(self, tablename='', filter='*'):
         """ constructor """
-        super().__init__()
 
         """ query configuration """
         self._tablename = tablename if tablename != '' else self.__class__._tablename
         self._filter = filter        
         pass
 
-    def findfirst(self, key, value) -> dict:
-        try:
-            return [item for item in self if item[key] == value][0]
-        except:
-            return {}
+    def find(self, key, value) -> dict:
+        pass
 
     def filter(self, key, values):
+
         resultset = [item for item in self if item[key] in values]
         self.clear()
         self.extend(resultset)
-
-    def len(self):
-        return self.__len__()
 
     pass
 
@@ -201,6 +210,8 @@ class StorageTableContext():
     """
     
     _models = []
+    _encryptproperties = False
+    _encrypted_properties = []
     _tableservice = None
     _storage_key = ''
     _storage_name = ''
@@ -215,6 +226,27 @@ class StorageTableContext():
         if self._storage_key != '' and self._storage_name != '':
             self._tableservice = TableService(account_name = self._storage_name, account_key = self._storage_key, protocol='https')
 
+        """ encrypt queue service """
+        if kwargs.get('AZURE_REQUIRE_ENCRYPTION', False):
+
+            # Create the KEK used for encryption.
+            # KeyWrapper is the provided sample implementation, but the user may use their own object as long as it implements the interface above.
+            kek = KeyWrapper(kwargs.get('AZURE_KEY_IDENTIFIER', 'otrrentapi'), kwargs.get('SECRET_KEY', 'super-duper-secret')) # Key identifier
+
+            # Create the key resolver used for decryption.
+            # KeyResolver is the provided sample implementation, but the user may use whatever implementation they choose so long as the function set on the service object behaves appropriately.
+            key_resolver = KeyResolver()
+            key_resolver.put_key(kek)
+
+            # Set the require Encryption, KEK and key resolver on the service object.
+            self._encryptproperties = True
+            self._tableservice.key_encryption_key = kek
+            self._tableservice.key_resolver_funcion = key_resolver.resolve_key
+            self._tableservice.encryption_resolver_function = self.__encryptionresolver__
+
+
+        pass
+
     def __createtable__(self, tablename) -> bool:
         if (not self._tableservice is None):
             try:
@@ -227,24 +259,37 @@ class StorageTableContext():
             return True
         pass
 
+    # Define the encryption resolver_function.
+    def __encryptionresolver__(self, pk, rk, property_name):
+        if property_name in self._encrypted_properties:
+            return True
+            log.debug('encrypt field {}'.format(property_name))
+        
+        log.debug('dont encrypt field {}'.format(property_name))
+        return False
+
     def register_model(self, storagemodel:object):
         modelname = storagemodel.__class__.__name__     
         if isinstance(storagemodel, StorageTableModel):
             if (not modelname in self._models):
                 self.__createtable__(storagemodel._tablename)
                 self._models.append(modelname)
-                log.info('model {} registered successfully. Models are {!s}'.format(modelname, self._models))      
+
+                """ set properties to be encrypted client side """
+                if self._encryptproperties:
+                    self._encrypted_properties += storagemodel._encryptedproperties
+
+                log.info('model {} registered successfully. Models are {!s}. Encrypted fields are {!s} '.format(modelname, self._models, self._encrypted_properties))      
         pass
 
     def table_isempty(self, tablename, PartitionKey='', RowKey = '') -> bool:
-        if  (not self._tableservice is None):
+        if  (not self.tableservice is None):
 
             filter = "PartitionKey eq '{}'".format(PartitionKey) if PartitionKey != '' else ''
             if filter == '':
                 filter = "RowKey eq '{}'".format(RowKey) if RowKey != '' else ''
             else:
                 filter = filter + ("and RowKey eq '{}'".format(RowKey) if RowKey != '' else '')
-
             try:
                 entities = list(self._tableservice.query_entities(tablename, filter = filter, select='PartitionKey', num_results=1))
                 if len(entities) == 1: 
@@ -315,7 +360,7 @@ class StorageTableContext():
             modelname = storagemodel.__class__.__name__
             if (modelname in self._models):
                 try:            
-                    self._tableservice.insert_or_replace_entity(storagemodel._tablename, storagemodel.dict(True))
+                    self._tableservice.insert_or_replace_entity(storagemodel._tablename, storagemodel.dict())
                     storagemodel._exists = True
 
                 except AzureMissingResourceHttpError as e:
@@ -333,7 +378,7 @@ class StorageTableContext():
             modelname = storagemodel.__class__.__name__
             if (modelname in self._models):
                 try:            
-                    self._tableservice.insert_or_merge_entity(storagemodel._tablename, storagemodel.dict(True))
+                    self._tableservice.insert_or_merge_entity(storagemodel._tablename, storagemodel.dict())
                     storagemodel._exists = True
 
                 except AzureMissingResourceHttpError as e:
@@ -363,6 +408,57 @@ class StorageTableContext():
             return storagemodel
         else:
             return None
+
+
+    def __changeprimarykeys__(self, PartitionKey = '', RowKey = ''):
+        """ Change Entity Primary Keys into new instance:
+
+            - PartitionKey and/or
+            - RowKey
+        """
+
+        PartitionKey = PartitionKey if PartitionKey != '' else self._PartitionKey
+        RowKey = RowKey if RowKey != '' else self._RowKey
+
+        """ change Primary Keys if different to existing ones """
+        if (PartitionKey != self._PartitionKey) or (RowKey != self._RowKey):
+            return True, PartitionKey, RowKey
+        else:
+            return False, PartitionKey, RowKey
+        pass
+            
+    def moveto(self, PartitionKey = '', RowKey = ''):
+        """ Change Entity Primary Keys and move in Storage:
+
+            - PartitionKey and/or
+            - RowKey
+        """
+        changed, PartitionKey, RowKey = self.__changeprimarykeys__(PartitionKey, RowKey)
+
+        if changed:
+
+            """ sync self """
+            new = self.copyto(PartitionKey, RowKey)
+            new.save()
+
+            """ delete Entity if exists in Storage """
+            self.delete()
+
+    def copyto(self, PartitionKey = '', RowKey = '') -> object:
+        """ Change Entity Primary Keys and copy to new Instance:
+
+            - PartitionKey and/or
+            - RowKey
+        """
+        changed, PartitionKey, RowKey = self.__changeprimarykeys__(PartitionKey, RowKey)
+
+        self.load()
+        new = self
+        new._PartitionKey = PartitionKey
+        new._RowKey = RowKey
+        new.load()
+
+        return new
 
     def query(self, storagecollection) -> StorageTableCollection:
         if isinstance(storagecollection, StorageTableCollection):
