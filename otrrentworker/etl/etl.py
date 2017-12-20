@@ -92,8 +92,14 @@ def import_otrepg(date, genres:StorageTableCollection, config, log):
                 for row in rows:
                     row['PartitionKey'] = PartitionKey
                     row['RowKey'] = row['Id']
-                    genre = genres.findfirst('RowKey', row['genre_id'])
-                    row['genre'] = getattr(genre, 'Genre', 'Sonstiges')
+
+                    """ get genre """
+                    genre = Genre(PartitionKey='all', RowKey=str(row['genre_id']))
+                    if not genre:
+                        row['genre'] = 'Sonstiges'
+                    else:
+                        row['genre'] = genre.Genre
+
                     tmp = Recording(**row)
                     db.insert(tmp)
 
