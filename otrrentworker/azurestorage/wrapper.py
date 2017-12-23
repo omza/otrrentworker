@@ -304,7 +304,7 @@ class StorageTableContext():
             else:
                 filter = filter + ("and RowKey eq '{}'".format(RowKey) if RowKey != '' else '')
             try:
-                entities = list(self._tableservice.query_entities(tablename, filter = filter, select='PartitionKey', num_results=1))
+                entities = list(self._tableservice.query_entities(tablename, filter = filter, num_results=1))
                 if len(entities) == 1: 
                     return False
                 else:
