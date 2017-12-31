@@ -137,30 +137,47 @@ def update_toprecordings(config, log):
         for index in range(1,len(content)):
             lines = content[index].split('<td oncontextmenu="showNewTabMenu(')
             
-            """ epg id """
+            """ parse option #1 """
+            parsed = False
             try:
-                epg_id = lines[1].split(',')[0]
-                rating = lines[8].split('Beliebtheit: ')[1].split("'")[0]
+                epg_id = lines[1].split(',')[0]            
                 previewimagelink = lines[10].split('<img src=')[1].split(' width=')[0]
                 primarykey = datetime.strptime(lines[4].split('>')[1].split('<')[0], '%d.%m.%y').date().strftime('%Y_%m_%d')
+                rating = lines[8].split('Beliebtheit: ')[1].split("'")[0]
                 log.debug('parsed recording: {} with rating: {} and preview = {}'.format(epg_id, rating, previewimagelink))
+                parsed = True
 
-            except:
-                log.error('parsing not possible {!s}'.format(lines))
+            except Exception as e:
+                log.error('parsing option #1 not possible {!s} due to {!s}'.format(lines, e))
 
-            if rating in ['sehr hoch', 'hoch']:
-                top = db.get(Recording(PartitionKey = primarykey, RowKey = epg_id))  
-                if not top is None:           
-                    top.rating = rating
-                    top.previewimagelink = previewimagelink
-                    top.PartitionKey = 'top'
-                    db.insert(top)
-                    log.info('recording {} moved or is already moved successfully ({}, {!s}, at {})'.format(epg_id,top.titel, top.beginn, top.sender))
+            """ parse option #2 """
+            if not parsed:
+                try:
+                    epg_id = lines[1].split(',')[0]                   
+                    previewimagelink = lines[8].split('<img src=')[1].split(' width=')[0]
+                    primarykey = datetime.strptime(lines[2].split('>')[1].split('<')[0], '%d.%m.%y').date().strftime('%Y_%m_%d')
+                    rating = lines[6].split('Beliebtheit: ')[1].split("'")[0]
+                    log.debug('parsed recording: {} with rating: {} and preview = {}'.format(epg_id, rating, previewimagelink))
+                    parsed = True
+
+                except Exception as e:
+                    log.error('parsing option #2 not possible {!s} due to {!s}'.format(lines, e))
+
+            """ save top records to storage """
+            if parsed:
+                if rating in ['sehr hoch', 'hoch']:
+                    top = db.get(Recording(PartitionKey = primarykey, RowKey = epg_id))  
+                    if not top is None:           
+                        top.rating = rating
+                        top.previewimagelink = previewimagelink
+                        top.PartitionKey = 'top'
+                        db.insert(top)
+                        log.info('recording {} moved or is already moved successfully ({}, {!s}, at {})'.format(epg_id,top.titel, top.beginn, top.sender))
+                    else:
+                        log.info('epg not found: {} with rating: {} and preview = {}'.format(epg_id, rating, previewimagelink)) 
+
                 else:
-                    log.info('epg not found: {} with rating: {} and preview = {}'.format(epg_id, rating, previewimagelink)) 
-
-            else:
-                stopflag = True
+                    stopflag = True
 
                 
         start = start + 20
