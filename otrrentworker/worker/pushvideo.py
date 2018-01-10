@@ -15,7 +15,7 @@ from azurestorage import (
     )
 from azurestorage.wrapper import StorageTableCollection
 from azurestorage.queuemodels import PushVideoMessage
-from azurestorage.tablemodels import History
+from azurestorage.tablemodels import History, User
 
 """ import logic and helpers """
 from helpers.ftp import ftp_upload_file2
@@ -81,14 +81,14 @@ def decode(log, otr_user, otr_pass, use_cutlists, source_fullpath, video_path, c
         
         """ decoding successful ? """
         if process.returncode != 0:
-            return False, 'decoding failed with code {!s} and output {!s}'.format(process.returncode, process.stderr.read())
+            return process.returncode, 'decoding failed with code {!s} and output {!s}'.format(process.returncode, process.stderr.read())
         else:
             log.info('Decoding succesfull with returncode {!s}.'.format(process.returncode))
-            return True, None
+            return 0, None
 
     except Exception as e:
         log.exception('Exception Traceback:')
-        return False, e
+        return -1, e
 
 """ parse transmission-remote status """
 def get_transmissionstatus(log) -> list:
@@ -179,6 +179,14 @@ def do_pushvideo_queue_message(config, log):
             history.created = datetime.now()
             history.epgid = message.epgid
             history.sourcefile = message.videofile
+            user = None
+
+        else:
+            """ get user """
+            user = None
+            userlist = db.query(StorageTableCollection('userprofile', "RowKey eq '" + history.PartitionKey + "'"))
+            for item in userlist:
+                user = db.get(User(PartitionKey=item.PartitionKey, RowKey = history.PartitionKey))
 
         #log.debug('{!s}'.format(history.dict()))
 
@@ -237,16 +245,31 @@ def do_pushvideo_queue_message(config, log):
                     else:
                         localcutlistfile = None
 
-                    decoded, errormessage = decode(log, 'omza@gmx.de', message.otrpassword, message.usecutlist, localotrkeyfile, config['APPLICATION_PATH_VIDEOS'], localcutlistfile)
-                    if not decoded:
-                        raise Exception(errormessage)
-                    else:
+                    decoded, errormessage = decode(log, message.otruser, message.otrpassword, message.usecutlist, localotrkeyfile, config['APPLICATION_PATH_VIDEOS'], localcutlistfile)
+                    if decoded == 0:
+                        """ successfully decoded """
                         houskeeping.append(localcutlistfile)
                         if not downloadstatus is None:
                             housekeepingTransmission.append(downloadstatus)
                         
                         log.info('decoding otrkeyfile {!s} successfully processed!'.format(message.otrkeyfile))
                         history.status = 'decoded'
+
+                        if not user is None:
+                            user.FtpConnectionChecked = False
+                            db.insert(user)
+
+                    elif decoded == 255:
+                        """ otr credentials not worked """
+                        if not user is None:
+                            user.OtrCredentialsChecked = False
+                            db.insert(user)
+                        
+                        raise Exception(errormessage)
+                    else:
+                        """ other error """
+                        raise Exception(errormessage)
+
                                                                                                                                                              
                 else:
                     """ 3) ELSE if transmission job is not running
@@ -281,8 +304,7 @@ def do_pushvideo_queue_message(config, log):
                 history.status = 'error'
 
                 """ delete message after 3 tries """
-                history.errorcount += 1
-                if (config['APPLICATION_ENVIRONMENT'] == 'Production') and (history.errorcount >= 3):
+                if (config['APPLICATION_ENVIRONMENT'] == 'Production') and (message.dequeue_count >= 3):
                     queue.delete(message)
                     history.status = 'deleted'
  

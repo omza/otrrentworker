@@ -165,21 +165,21 @@ def update_toprecordings(config, log):
 
             """ save top records to storage """
             if parsed:
-                if rating in ['sehr hoch', 'hoch']:
-                    top = db.get(Recording(PartitionKey = primarykey, RowKey = epg_id))  
-                    if not top is None:           
-                        top.rating = rating
-                        top.previewimagelink = previewimagelink
-                        top.PartitionKey = 'top'
-                        db.insert(top)
-                        log.info('recording {} moved or is already moved successfully ({}, {!s}, at {})'.format(epg_id,top.titel, top.beginn, top.sender))
-                    else:
-                        log.info('epg not found: {} with rating: {} and preview = {}'.format(epg_id, rating, previewimagelink)) 
+                top = db.get(Recording(PartitionKey = primarykey, RowKey = epg_id))  
+                if not top is None:           
+                    top.rating = rating
+                    top.previewimagelink = previewimagelink.replace('http://','https://')
+                    top.PartitionKey = 'top'
+                    db.insert(top)
 
+                    if top.rating not in ['sehr hoch','hoch']:
+                        stopflag = True
+
+                    log.info('recording {} moved or is already moved successfully ({}, {!s}, at {})'.format(epg_id,top.titel, top.beginn, top.sender))
                 else:
-                    stopflag = True
+                    log.info('epg not found: {} with rating: {} and preview = {}'.format(epg_id, rating, previewimagelink))
 
-                
+   
         start = start + 20
 
     log.info('toprecordings successfully retireved!')
@@ -279,6 +279,12 @@ def update_torrents(startdate:date, config, log):
         log.debug('filterded {!s} torrents for top recording {}'.format(len(torrents),top.titel))
 
         if len(torrents) >= 1:
+            """ Torrent Count """
+            topItem = Recording(**top)
+            topItem.torrentCount = len(torrents)
+            db.insert(topItem)
+
+            """ Insert Torrent """
             for torrent in torrents:
                 db.insert(Torrent(Id = top.Id, **torrent))
         else:

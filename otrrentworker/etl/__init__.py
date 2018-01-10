@@ -19,7 +19,7 @@ def runetl(config, log):
     """ loop back for 10 days and import"""
     iterdate = datetime.now().date() - timedelta(days=10)
     startdate = datetime.now().date() - timedelta(days=8)
-    enddate = datetime.now().date() - timedelta(days=1 )
+    enddate = datetime.now().date()
     while (iterdate <= enddate):             
         if (iterdate < startdate):
             """ housekeeping(iterdate) """

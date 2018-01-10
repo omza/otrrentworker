@@ -86,7 +86,7 @@ def do_pushtorrent_queue_message(config, log):
                 """ delete message after 3 tries """
                 log.error('push failed because {}'.format(errormessage))
                 history.status = 'error'
-                if (not config['APPLICATION_ENVIRONMENT'] == 'Development') and (message.dequeue_count >= 3):
+                if (config['APPLICATION_ENVIRONMENT'] == 'Production') and (message.dequeue_count >= 3):
                     queue.delete(message)
                     history.status = 'deleted'
                 if os.path.exists(localfile): 
