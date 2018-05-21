@@ -1,4 +1,4 @@
-FROM ubuntu:latest
+FROM ubuntu:xenial
 MAINTAINER oliver@app-workshop.de
 
 # Install Python3 and pip
